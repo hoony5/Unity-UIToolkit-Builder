@@ -38,7 +38,6 @@ public class TransitionData : ScriptableObject
     /// </summary>
     public void AddClassList()
     {
-        TransitedPanel.styleSheets.Clear();
         for(var i = 0 ; i < styleClasses?.Length; i ++)
         {
             TransitionClass styleClass = styleClasses[i];
