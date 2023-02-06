@@ -68,7 +68,6 @@ public class UIAnimator : MonoBehaviour
 
    private void SavePanels(TransitionData current)
    {
-      transitedPanels.Clear();
       foreach (string panelName in current.TransitedPanelNames)
       {
          current.TransitedPanel ??= UIDocument.rootVisualElement.Q<VisualElement>(panelName);
@@ -118,6 +117,8 @@ public class UIAnimator : MonoBehaviour
       }
 
       if (transitionDatas is null || transitionDatas.Count == 0) return;
+      
+      transitedPanels.Clear();
       
       for (var i = 0 ; i < transitionDatas.Count; i ++)
       {
