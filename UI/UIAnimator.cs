@@ -14,10 +14,6 @@ public class UIAnimator : MonoBehaviour
    public UnityEvent<TransitionEndEvent> onPlayEnd;
 
 #if  UNITY_EDITOR
-   public void InitEvt()
-   {
-      RegisterEvent();
-   }
    public void StarTest()
    {
       Debug.Log("Start");
@@ -39,8 +35,9 @@ public class UIAnimator : MonoBehaviour
    }
    public void OnUpdateStyle()
    {
+      DeregisterClasses();
       DeregisterEvent();
-      RegisterEvent();
+      RegisterStyleClassesAndEvent();
    }
 
    public void AddStyle(TransitionData data)
@@ -58,19 +55,20 @@ public class UIAnimator : MonoBehaviour
    }
    private void Start()
    {
-      RegisterEvent();
+      RegisterStyleClassesAndEvent();
    }
 
    private void OnDestroy()
    {
+      DeregisterClasses();
       DeregisterEvent();
    }
 
-   private void SavePanels(TransitionData current)
+   private void SetPanels(TransitionData current)
    {
       foreach (string panelName in current.TransitedPanelNames)
       {
-         current.TransitedPanel ??= UIDocument.rootVisualElement.Q<VisualElement>(panelName);
+         current.TransitedPanel = UIDocument.rootVisualElement.Q<VisualElement>(panelName);
          
          if(!transitedPanels.Contains(current.TransitedPanel))
             transitedPanels.Add(current.TransitedPanel);
@@ -93,33 +91,13 @@ public class UIAnimator : MonoBehaviour
       }
    }
 
-   private void RegisterClasses(TransitionData current)
+   private void GetClasess(TransitionData current)
    {
       current.RegisterClasses();
    }
 
-   private void DeregisterClasses()
+   private void RegisterClaesses()
    {
-      if (transitedPanels is null) return;
-      if (transitedPanels.Count == 0) return;
-
-      for (int i = 0; i < transitedPanels.Count; i++)
-      {
-         transitedPanels[i].ClearClassList();
-      }
-   }
-   private void RegisterEvent()
-   {
-      if (UIDocument is null)
-      {
-         Debug.LogError($"UIDocument is null");
-         return;
-      }
-
-      if (transitionDatas is null || transitionDatas.Count == 0) return;
-      
-      transitedPanels.Clear();
-      
       for (var i = 0 ; i < transitionDatas.Count; i ++)
       {
          TransitionData current = transitionDatas[i];
@@ -127,17 +105,39 @@ public class UIAnimator : MonoBehaviour
          if(current is null) continue;
          if (current.TransitedPanelNames.Length == 0) continue;
 
-         SavePanels(current);
+         SetPanels(current);
          
-         RegisterClasses(current);
+         GetClasess(current);
       }
+   }
+
+   private void DeregisterClasses()
+   {
+      if (transitedPanels is null) return;
+      if (transitedPanels.Count == 0) return;
+
+      foreach (VisualElement panel in transitedPanels)
+      {
+         panel.ClearClassList();
+         panel.styleSheets.Clear();
+      }
+      transitedPanels.Clear();
+   }
+   private void RegisterStyleClassesAndEvent()
+   {
+      if (UIDocument is null)
+      {
+         Debug.LogError($"UIDocument is null");
+         return;
+      }
+
+      RegisterClaesses();
       
       RegisterCallBackAndRepaint();
    }
 
    private void DeregisterEvent()
    {
-      DeregisterClasses();
       if (transitedPanels is null) return;
       if (transitedPanels.Count == 0) return;
 
