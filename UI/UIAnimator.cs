@@ -39,6 +39,7 @@ public class UIAnimator : MonoBehaviour
    }
    public void OnUpdateStyle()
    {
+      DeregisterEvent();
       RegisterEvent();
    }
 
