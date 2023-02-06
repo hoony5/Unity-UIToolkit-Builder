@@ -1,7 +1,8 @@
 # Unity-UIToolkit-Transitions
 
-## * Update to 0.2v - download Release unitypackage please
+## * Update to 0.2v - download Release unitypackage please.
   #### Fix - Sometimes doesn't work playing animation - it solved by clearing style list class before playing animation.
+
 
 ## 1. Intro
 
