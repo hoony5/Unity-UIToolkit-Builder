@@ -68,6 +68,7 @@ public class UIAnimator : MonoBehaviour
 
    private void SavePanels(TransitionData current)
    {
+      transitedPanels.Clear();
       foreach (string panelName in current.TransitedPanelNames)
       {
          current.TransitedPanel ??= UIDocument.rootVisualElement.Q<VisualElement>(panelName);
