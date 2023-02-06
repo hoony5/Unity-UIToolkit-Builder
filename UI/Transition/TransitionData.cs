@@ -11,7 +11,6 @@ public class TransitionData : ScriptableObject
     /// 트랜지션 대상 패널 캐쉬데이터
     /// </summary>
     [NonSerialized] public VisualElement TransitedPanel;
-    private VisualElement _transitedPanel;
     /// <summary>
     /// 트랜지션 대상 패널 이름
     /// </summary>
@@ -19,12 +18,6 @@ public class TransitionData : ScriptableObject
     public string[] TransitedPanelNames => transitedPanelNames;
 
     [SerializeField] private TransitionClass[] styleClasses;
-    public TransitionClass[] StyleClasses;
-
-    private void OnEnable()
-    {
-        TransitedPanel = _transitedPanel;
-    }
 
     public void RegisterClasses()
     {
@@ -45,11 +38,11 @@ public class TransitionData : ScriptableObject
     /// </summary>
     public void AddClassList()
     {
+        TransitedPanel.styleSheets.Clear();
         for(var i = 0 ; i < styleClasses?.Length; i ++)
         {
             TransitionClass styleClass = styleClasses[i];
             if (!styleClass.IsTriggerStyle) continue;
-            if (TransitedPanel.ClassListContains(styleClass.StyleName)) continue;
             
             if(debugOn)
                 Debug.Log($"Add - {styleClass.StyleName}");
@@ -68,7 +61,6 @@ public class TransitionData : ScriptableObject
             TransitionClass styleClass = styleClasses[i];
             
             if (!styleClass.IsTriggerStyle) continue;
-            if (!TransitedPanel.ClassListContains(styleClass.StyleName)) continue; 
             
             if(debugOn)
                 Debug.Log($"Remove - {styleClass.StyleName}");
