@@ -1,7 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/TransitionBasicStyle.uss?fileID=7433441132597879392&amp;guid=7301afe3f5e812c438c9188d2fdd1fa1&amp;type=3#TransitionBasicStyle" />
-    <ui:VisualElement name="root" class="basicSize basicFill" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); transition-duration: 0.5s; background-image: url(&apos;project://database/Assets/Window%20-%20Light.png?fileID=2800000&amp;guid=ae9a7406e126ce14d9dc98aef63f5af0&amp;type=3#Window - Light&apos;);" />
-    <ui:VisualElement name="dynamic-root" class="basicSize basicFill" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); transition-duration: 0.5s; top: 50px; height: 144px; width: 703px; flex-direction: row; flex-basis: auto; flex-shrink: 0; left: 0; display: none;">
-        <ui:TextField picking-mode="Ignore" value="filler text" style="flex-grow: 1; flex-shrink: 1; font-size: 32px;" />
-    </ui:VisualElement>
+    <ui:VisualElement name="root" class="basicSize basicFill" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); transition-duration: 0.5s; background-image: url(&apos;project://database/Assets/UI/BasicTexture.png?fileID=2800000&amp;guid=aee9e4dc57cc782459557516931e1ba7&amp;type=3#BasicTexture&apos;);" />
+    <ui:VisualElement name="dynamic-root" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); background-image: url(&apos;project://database/Assets/UI/BasicTexture.png?fileID=2800000&amp;guid=aee9e4dc57cc782459557516931e1ba7&amp;type=3#BasicTexture&apos;); -unity-background-image-tint-color: rgb(243, 157, 157); width: 256px;" />
 </ui:UXML>

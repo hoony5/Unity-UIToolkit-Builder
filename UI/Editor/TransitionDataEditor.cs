@@ -8,7 +8,6 @@ public class TransitionDataEditor : Editor
     private TransitionData _data;
     private ReorderableList _list;
     
-    private bool isExpanded = false;
     private bool styleSheetIsNull = true;
     private bool transitedPanelIsNull = true;
     
@@ -34,8 +33,6 @@ public class TransitionDataEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space(10);
-        EditorGUILayout.PropertyField(serializedObject.FindProperty("debugOn"));
         EditorGUILayout.Space(10);
         // 스타일 시트
         SerializedProperty styleSheet = serializedObject.FindProperty("styleSheet");

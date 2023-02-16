@@ -1,173 +1,54 @@
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.UIElements;
 
+[ExecuteInEditMode]
+[RequireComponent(typeof(TransitionDataController))]
 public class UIAnimator : MonoBehaviour
 {
-   public UIDocument UIDocument;
-   [SerializeField] private List<TransitionData> transitionDatas = new List<TransitionData>(32);
-   private List<VisualElement> transitedPanels = new List<VisualElement>(16);
-   [Header("Events")]
-   [Space(15)]
-   public UnityEvent<TransitionStartEvent> onPlayStart;
-   public UnityEvent<TransitionEndEvent> onPlayEnd;
+   public TransitionDataController dataController;
 
+   private void OnEnable()
+   {
+      dataController ??= GetComponent<TransitionDataController>();
+   }
 #if  UNITY_EDITOR
-   public void InitEvt()
+   public void PlayTest()
    {
-      RegisterEvent();
+      OnToggle("root",false);
    }
-   public void StarTest()
+   public void ReversePlayTest()
    {
-      Debug.Log("Start");
-   }
-   public void EndTest()
-   {
-      Debug.Log("End");
+      OnToggle("root",true);
    }
 #endif
-   public void Play()
+   public void Play(string visualElementName)
    {
-      OnUpdateStyle();
-      OnToggle(false);
+      OnToggle(visualElementName, false);
    }
-   public void ReversePlay()
+   public void ReversePlay(string visualElementName)
    {
-      OnUpdateStyle();
-      OnToggle(true);
+      OnToggle(visualElementName, true);
    }
+
    public void OnUpdateStyle()
    {
-      RegisterEvent();
+      dataController.Release();
+      dataController.Init();
    }
 
-   public void AddStyle(TransitionData data)
+   private void AddClassToList(string visualElementName)
    {
-      if (transitionDatas.Contains(data)) return;
-      transitionDatas.Add(data);
-      OnUpdateStyle();
+      dataController.AddAnimatedClassList(visualElementName);
    }
-
-   public void RemoveStyle(TransitionData data)
+   private void RemoveFromClassList(string visualElementName)
    {
-      if (!transitionDatas.Contains(data)) return;
-      transitionDatas.Remove(data);
-      OnUpdateStyle();
-   }
-   private void Start()
-   {
-      RegisterEvent();
-   }
-
-   private void OnDestroy()
-   {
-      DeregisterEvent();
-   }
-
-   private void SavePanels(TransitionData current)
-   {
-      foreach (string panelName in current.TransitedPanelNames)
-      {
-         current.TransitedPanel ??= UIDocument.rootVisualElement.Q<VisualElement>(panelName);
-         
-         if(!transitedPanels.Contains(current.TransitedPanel))
-            transitedPanels.Add(current.TransitedPanel);
-      }
-   }
-   private void RegisterCallBackAndRepaint()
-   {
-      if (transitedPanels is null) return;
-      if (transitedPanels.Count == 0) return;
-
-      for (int i = 0; i < transitedPanels.Count; i++)
-      {
-         VisualElement current = transitedPanels[i];
-         current.UnregisterCallback<TransitionStartEvent>(OnTransitionStart);
-         current.UnregisterCallback<TransitionEndEvent>(OnTransitionEnd);
-         current.RegisterCallback<TransitionStartEvent>(OnTransitionStart);
-         current.RegisterCallback<TransitionEndEvent>(OnTransitionEnd);
-         
-         current.MarkDirtyRepaint();
-      }
-   }
-
-   private void RegisterClasses(TransitionData current)
-   {
-      current.RegisterClasses();
-   }
-
-   private void DeregisterClasses()
-   {
-      if (transitedPanels is null) return;
-      if (transitedPanels.Count == 0) return;
-
-      for (int i = 0; i < transitedPanels.Count; i++)
-      {
-         transitedPanels[i].ClearClassList();
-      }
-   }
-   private void RegisterEvent()
-   {
-      if (UIDocument is null)
-      {
-         Debug.LogError($"UIDocument is null");
-         return;
-      }
-
-      if (transitionDatas is null || transitionDatas.Count == 0) return;
-      
-      for (var i = 0 ; i < transitionDatas.Count; i ++)
-      {
-         TransitionData current = transitionDatas[i];
-         
-         if(current is null) continue;
-         if (current.TransitedPanelNames.Length == 0) continue;
-
-         SavePanels(current);
-         
-         RegisterClasses(current);
-      }
-      
-      RegisterCallBackAndRepaint();
-   }
-
-   private void DeregisterEvent()
-   {
-      if (transitedPanels is null) return;
-      if (transitedPanels.Count == 0) return;
-
-      for (int i = 0; i < transitedPanels.Count; i++)
-      {
-         VisualElement current = transitedPanels[i];
-         current.UnregisterCallback<TransitionStartEvent>(OnTransitionStart);
-         current.UnregisterCallback<TransitionEndEvent>(OnTransitionEnd);
-      }
-   }
-
-   private void OnTransitionStart(TransitionStartEvent evt)
-   {
-      onPlayStart?.Invoke(evt);
-   }
-   private void OnTransitionEnd(TransitionEndEvent evt)
-   {
-      onPlayEnd?.Invoke(evt);
+      dataController.RemoveAnimatedFromClassList(visualElementName);
    }
    
-   public void OnToggle(bool setActive)
+   public void OnToggle(string elementName, bool setActive)
    {
-      if (UIDocument is null)
-      {
-         Debug.LogError($"UIDocument is null");
-         return;
-      }
-      
-      foreach (TransitionData current in transitionDatas)
-      {
-         if(setActive)
-            current.AddClassList();
-         else
-            current.RemoveFromClassList();
-      }
+      if (setActive)
+         AddClassToList(elementName);
+      else
+         RemoveFromClassList(elementName);
    }
 }

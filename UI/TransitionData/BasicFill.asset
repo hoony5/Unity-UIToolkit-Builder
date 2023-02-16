@@ -12,11 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a16fb06a1100752448991d45567742fb, type: 3}
   m_Name: BasicFill
   m_EditorClassIdentifier: 
-  debugOn: 0
   styleSheet: {fileID: 7433441132597879392, guid: 7301afe3f5e812c438c9188d2fdd1fa1, type: 3}
   transitedPanelNames:
   - root
+  - dynamic-root
   styleClasses:
   - styleName: basicFill
     isTriggerStyle: 0
-  StyleClasses: []
