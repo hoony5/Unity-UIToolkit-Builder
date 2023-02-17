@@ -1,5 +1,17 @@
 # Unity-UIToolkit-Transitions
 
+## Update Note.
+  #### MVC
+    * Model : TransitionData.cs
+    * Controller : TransitionDataController.cs
+    * View : UIAnimator.cs
+  #### Change Init , Update(Remove then, Add)
+    * Play ( string VisualElementName) 
+    * ReversePlay( string VisualElementName) 
+    * OnUpdateStyle() { Release(); Init(); }
+
+  #### Set Test Button on the UIAnimatorEditor.cs
+---
 ## 1. Intro
 
 I made for easy adding or removing uss class to use unity new UI System .
