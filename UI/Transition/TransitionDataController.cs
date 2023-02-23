@@ -1,5 +1,6 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -41,16 +42,33 @@ public class TransitionDataController : MonoBehaviour
         {
             foreach (string visualElementName in animationData.transitedPanelNames)
             {
-                AddTransitionData(visualElementName, animationData);
+                RememberTransitionData(visualElementName, animationData);
 
                 VisualElement target = UIDocument.rootVisualElement.Q(visualElementName);
+
+                if (target is null)
+                {
+                    if(transitionContainer.ContainsKey(visualElementName))
+                        transitionContainer.Remove(visualElementName);
+                    
+                    continue;
+                }
                 
-                AddVisualElement(visualElementName, target);
+                RememberVisualElement(visualElementName, target);
 
                 AddStyleSheet(target, animationData);
                 RegisterClasses(target, animationData);
                 RegisterCallbackEvent(target);
             }
+        }
+    }
+
+    public void GetVisualElementClassList(string visualElementName)
+    {
+        var list = visualElementContainer[visualElementName].GetClasses().ToArray();
+        foreach (string item in list)
+        {
+            Debug.Log($"{visualElementName} : {item}");
         }
     }
 
@@ -60,7 +78,7 @@ public class TransitionDataController : MonoBehaviour
         visualElementContainer.Clear();
     }
 
-    private void AddTransitionData(string visualElementName, TransitionData animationData)
+    private void RememberTransitionData(string visualElementName, TransitionData animationData)
     {
         if (transitionContainer.ContainsKey(visualElementName))
         {
@@ -71,11 +89,13 @@ public class TransitionDataController : MonoBehaviour
         }
         else
         {
-            transitionContainer.TryAdd(visualElementName, new List<TransitionData>(8));
+            List<TransitionData> list = new List<TransitionData>(8);
+            list.Add(animationData);
+            transitionContainer.TryAdd(visualElementName, list);
         }
     }
 
-    private void AddVisualElement(string visualElementName, VisualElement visualElement)
+    private void RememberVisualElement(string visualElementName, VisualElement visualElement)
     {
         if (visualElementContainer.ContainsKey(visualElementName)) return; 
         
@@ -125,6 +145,8 @@ public class TransitionDataController : MonoBehaviour
         {
             TransitionClass styleClass = data.styleClasses[i];
             
+            if(!styleClass.IsTriggerStyleOnStart) continue;
+            
             if(!target.ClassListContains(styleClass.StyleName))
                 target.AddToClassList(styleClass.StyleName);
         }
@@ -137,6 +159,27 @@ public class TransitionDataController : MonoBehaviour
             
             if(!target.ClassListContains(styleClass.StyleName))
                 target.AddToClassList(styleClass.StyleName);
+        }
+    }
+    public void ToggleAnimatedClassList(string elementName)
+    {
+        if (!transitionContainer.ContainsKey(elementName)) return;
+
+        List<TransitionData> styles = transitionContainer[elementName];
+        VisualElement target = visualElementContainer[elementName];
+        
+        foreach (TransitionData style in styles)
+        {
+            Debug.Log($"{elementName} | {style.name} | {target.name}");
+            for(int i = 0 ; i < style.styleClasses?.Length; i ++)
+            {
+                TransitionClass styleClass = style.styleClasses[i];
+                if (!styleClass.IsTriggerStyle) continue;
+            
+                if(debugOn)
+                    Debug.Log($"Add - {styleClass.StyleName}");
+                target.ToggleInClassList(styleClass.StyleName);
+            }   
         }
     }
     public void AddAnimatedClassList(string elementName)
@@ -156,7 +199,11 @@ public class TransitionDataController : MonoBehaviour
             
                 if(debugOn)
                     Debug.Log($"Add - {styleClass.StyleName}");
-                target.AddToClassList(styleClass.StyleName);
+                
+                if(target.ClassListContains(styleClass.StyleName))
+                    target.RemoveFromClassList(styleClass.StyleName);
+                else
+                    target.AddToClassList(styleClass.StyleName);
             }   
         }
     }
@@ -179,7 +226,10 @@ public class TransitionDataController : MonoBehaviour
                 if (debugOn)
                     Debug.Log($"Remove - {styleClass.StyleName}");
 
-                target.RemoveFromClassList(styleClass.StyleName);
+                if(target.ClassListContains(styleClass.StyleName))
+                    target.AddToClassList(styleClass.StyleName);
+                else
+                    target.RemoveFromClassList(styleClass.StyleName);
             }
         }
     }
