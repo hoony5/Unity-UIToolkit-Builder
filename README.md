@@ -1,14 +1,14 @@
 # Unity-UIToolkit-Transitions
 
-## Update Note.
-  #### MVC
-    * Model : TransitionData.cs
-    * Controller : TransitionDataController.cs
-    * View : UIAnimator.cs
-  #### Change Init , Update(Remove then, Add)
-    * Play ( string VisualElementName) 
-    * ReversePlay( string VisualElementName) 
-    * OnUpdateStyle() { Release(); Init(); }
+## Update Note. 0.4v
+
+1. when set transition data to dataControoler, logic ignore not contains visualElement name on the uxml.
+
+2. test convinence : UI Animator -> ViaualElementsPanelNames : string[] work together in the buttons.
+
+3. you can select options when start adding class or not. { transition Data }
+
+4. AddTransitionData , bug fix- fiailed to add key .
 
   #### Set Test Button on the UIAnimatorEditor.cs
 ---
@@ -36,13 +36,13 @@ I made for easy adding or removing uss class to use unity new UI System .
 
 #### 6. Fill Data by some of the the Hieracy's Visual Elements.
 
-![image](https://user-images.githubusercontent.com/123732566/215468651-52a5a742-ebb1-498e-9ca6-32bec0afb707.png)
+![startoption](https://user-images.githubusercontent.com/123732566/220820768-0a117e01-d696-40ee-a962-604afd7444a6.png)
 
 ![image](https://user-images.githubusercontent.com/123732566/215468864-202d208f-473e-4bd6-968f-e6b7fbc78aed.png)
 
 #### 7. Assign 'Panel Setting', Transition Data or Transition Events.
 
-![image](https://user-images.githubusercontent.com/123732566/219416243-fb3504fd-4ce0-44b1-a9da-81da40442809.png)
+![addTest](https://user-images.githubusercontent.com/123732566/220820790-f6442c2e-dfa7-49c1-ac8d-49e335aadd5e.png)
 
 #### 8. Play or ReversePlay
 
