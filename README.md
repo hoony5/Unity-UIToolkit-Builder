@@ -5,6 +5,7 @@
 1. I'm creating Uxml Reader and Uxml to MonoScript Generator.
 2. I will create USS Reader for this.
 3. Fianlly, I'm designing Uxml,USS Reader - SourceGenerator (Model, Controller) - UIAnimator System. :D
+* I'm looking foward to progressing work flow. ;D
 
 ## Update Note. 0.4v
 
@@ -17,6 +18,15 @@
 4. AddTransitionData , bug fix- fiailed to add key .
 
   #### Set Test Button on the UIAnimatorEditor.cs
+
+## Next Update 0.5v
+
+1. Upload Uxml ,USS Reader 
+
+2. VisualElement Name and Style Name of UIAnimator's TransitionData are going to change textField to dropdown menu. Editor Read UXml & USS.
+
+3. Update Usage Document.
+
 ---
 ## 1. Intro
 
