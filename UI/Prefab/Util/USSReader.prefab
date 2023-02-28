@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1767984710877529281
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3866201606342171475}
+  - component: {fileID: 1603723339084511782}
+  m_Layer: 0
+  m_Name: USSReader
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3866201606342171475
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1767984710877529281}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: -1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1603723339084511782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1767984710877529281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc06eb9438d302f4cac96d82e82d0f2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uss: {fileID: 7433441132597879392, guid: 691adcc9d13897d449ffe34ad4357be3, type: 3}
+  path: Assets/UI/Resources/TransitionBasicStyle.uss
+  classNames:
+  - basicSize
+  - basicFill
+  - basicImage
+  - basicTransparent
+  - colored
+  - panel--go_right
+  - panel--show
+  - panel--go_left
+  - panel--go_bottom
+  - panel--go_top
+  - panel--fade_halfout
+  - panel--fade_out
+  - panel--fade_in
+  - panel--scale-up
+  - panel--scale-zero
+  - panel--pivot_left_top
+  - panel--pivot_top
+  - panel--pivot_right_top
+  - panel--pivot_left
+  - panel--pivot_center
+  - panel--pivot_right
+  - panel--pivot_left_bot
+  - panel--pivot_bot
+  - panel--pivot_right_bot
+  - panel--rotate
+  - panel--rotate_45
+  - panel--rotate_90
+  - flex--test
+  - handCursor
+  - fadeOut
+  - hidden
+  - show

@@ -1,14 +1,19 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-[CreateAssetMenu(fileName = "newTransitionData", menuName = "ScriptableObject/VisualElement/TransitionStyleClassNames", order = 0)]
+[System.Serializable, CreateAssetMenu(fileName = "newTransitionData", menuName = "ScriptableObject/VisualElement/TransitionStyleClassNames", order = 0)]
 public class TransitionData : ScriptableObject
 {
+    private const int Capactiy = 32;
+    [SerializeField] public VisualTreeAsset uxml;
     [SerializeField] public StyleSheet styleSheet;
+    
+    [SerializeField] public List<string> styleSheetsClassNames = new List<string>(Capactiy);
     /// <summary>
-    /// 트랜지션 대상 패널 이름
+    /// animated Target Panel
     /// </summary>
-    [SerializeField] public string[] transitedPanelNames;
+    [SerializeField] public List<string> transitedPanelNames = new List<string>(Capactiy);
 
     [SerializeField] public TransitionClass[] styleClasses;
 }

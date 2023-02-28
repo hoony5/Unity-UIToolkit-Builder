@@ -12,9 +12,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a16fb06a1100752448991d45567742fb, type: 3}
   m_Name: PivotCenterRight
   m_EditorClassIdentifier: 
-  styleSheet: {fileID: 7433441132597879392, guid: 7301afe3f5e812c438c9188d2fdd1fa1, type: 3}
+  uxml: {fileID: 0}
+  styleSheet: {fileID: 7433441132597879392, guid: 691adcc9d13897d449ffe34ad4357be3,
+    type: 3}
+  styleSheetsClassNames:
+  - basicSize
+  - basicFill
+  - basicImage
+  - basicTransparent
+  - colored
+  - panel--go_right
+  - panel--show
+  - panel--go_left
+  - panel--go_bottom
+  - panel--go_top
+  - panel--fade_halfout
+  - panel--fade_out
+  - panel--fade_in
+  - panel--scale-up
+  - panel--scale-zero
+  - panel--pivot_left_top
+  - panel--pivot_top
+  - panel--pivot_right_top
+  - panel--pivot_left
+  - panel--pivot_center
+  - panel--pivot_right
+  - panel--pivot_left_bot
+  - panel--pivot_bot
+  - panel--pivot_right_bot
+  - panel--rotate
+  - panel--rotate_45
+  - panel--rotate_90
+  - flex--test
+  - handCursor
+  - fadeOut
+  - hidden
+  - show
   transitedPanelNames:
   - root
   styleClasses:
-  - styleName: panel--pivot_right_top
+  - styleName: panel--pivot_right
+    _selectedStyleClassIndex: 20
     isTriggerStyle: 1
+    isTriggerStyleOnStart: 1
+    swappedClass: 
