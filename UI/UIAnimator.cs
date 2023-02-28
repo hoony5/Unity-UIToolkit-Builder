@@ -6,9 +6,10 @@ public class UIAnimator : MonoBehaviour
 {
    public TransitionDataController dataController;
 
+   [SerializeField] public string[] visualElementNames;
    private void OnEnable()
    {
-      dataController ??= GetComponent<TransitionDataController>();
+      dataController = GetComponent<TransitionDataController>();
    }
 #if  UNITY_EDITOR
    public void PlayTest()
@@ -27,6 +28,11 @@ public class UIAnimator : MonoBehaviour
    public void ReversePlay(string visualElementName)
    {
       OnToggle(visualElementName, true);
+   }
+
+   public void GetClassList(string visualElementName)
+   {
+      dataController.GetVisualElementClassList(visualElementName);
    }
 
    public void OnUpdateStyle()

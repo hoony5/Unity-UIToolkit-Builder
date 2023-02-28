@@ -3,14 +3,49 @@
     height: 256px;
 }
 
+.hidden {
+    transition-duration: 0.5s, 0s;
+    opacity: 1;
+    display: none;
+    scale: 0 0;
+    transition-property: scale, display;
+    transition-delay: 0s, 1s;
+}
+
 .basicFill {
+    background-color: rgb(255, 255, 255);
+    background-image: none;
+    transition-delay: 0s;
+    transition-duration: 1s;
+}
+
+.basicImage {
+    background-image: resource('BasicTexture');
+    -unity-background-image-tint-color: rgb(65, 65, 65);
+    background-color: rgba(255, 255, 255, 0);
+}
+
+.basicTransparent {
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0);
+}
+
+.colored:checked :hover {
+    background-color: rgb(100, 100, 100);
+}
+
+.colored:checked :active {
+    background-color: rgb(100, 100, 100);
+}
+
+.colored:checked :inactive {
     background-color: rgb(255, 255, 255);
 }
 
 .panel--go_right {
-    transition-duration: 1.5s;
+    transition-duration: 0.5s;
     translate: 100% 0;
     transition-delay: 0s;
+    transition-timing-function: ease-out-elastic;
 }
 
 .panel--show {
@@ -20,8 +55,9 @@
 }
 
 .panel--go_left {
-    transition-duration: 1.5s;
+    transition-duration: 0.3s;
     translate: -100% 0;
+    transition-timing-function: ease-in-out-sine;
 }
 
 .panel--go_bottom {
@@ -43,25 +79,25 @@
 
 .panel--fade_out {
     visibility: hidden;
-    transition-duration: 1.5s;
+    transition-duration: 2s;
     background-color: rgb(0, 0, 0);
     opacity: 0;
 }
 
 .panel--fade_in {
     visibility: visible;
-    transition-duration: 1.5s;
+    transition-duration: 2s;
     background-color: rgb(0, 0, 0);
     opacity: 1;
 }
 
-.panel--scale-up {
+.panel--scale-up:checked:hover {
     transition-duration: 0.5s;
     scale: 1.05 1.05;
 }
 
 .panel--scale-zero {
-    transition-duration: 0.5s;
+    transition-duration: 1s;
     visibility: hidden;
     scale: 0 0;
 }
@@ -118,4 +154,24 @@
     transition-duration: 0.5s;
     transition-timing-function: ease-in-out-bounce;
     flex-grow: 1;
+}
+
+.handCursor {
+    cursor: resource('HandLinkCursor');
+}
+
+.fadeOut {
+    color: rgba(0, 0, 0, 0);
+    background-color: rgba(0, 0, 0, 0);
+    -unity-background-image-tint-color: rgba(0, 0, 0, 0);
+    transition-duration: 0.5s;
+    opacity: 0;
+}
+
+.show {
+    transition-duration: 0.5s, 0s;
+    opacity: 1;
+    display: flex;
+    transition-property: scale, display;
+    transition-delay: 0s, 1s;
 }
