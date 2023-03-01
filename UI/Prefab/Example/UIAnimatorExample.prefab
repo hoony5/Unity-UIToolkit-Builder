@@ -88,6 +88,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   dataController: {fileID: 7878975443164111904}
-  isTestMode: 0
+  isTestMode: 1
   visualElementNames:
   - root

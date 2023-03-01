@@ -22,6 +22,7 @@ public class TransitionDataEditor : Editor
     private SerializedProperty _styleSheet;
     private SerializedProperty _transitedPanelNames;
     
+    private bool _styleSheetIsInvalidated = true;
     private bool _styleSheetIsNull = true;
     private bool _transitedPanelIsNull = true;
     
@@ -32,10 +33,12 @@ public class TransitionDataEditor : Editor
     private static GUIStyle _largeFontStyle;
 
     private List<string> _elementInfos = new List<string>(72);
+    private List<int> _elementIndices = new List<int>(72);
     private void OnEnable()
     {
         _data = target as TransitionData;
-        
+
+        _elementIndices = Enumerable.Repeat(0, _elementIndices.Capacity - 1).ToList();
         _uxml = serializedObject.FindProperty("uxml");
         _styleSheet = serializedObject.FindProperty("styleSheet");
         _transitedPanelNames = serializedObject.FindProperty("transitedPanelNames");
@@ -47,11 +50,25 @@ public class TransitionDataEditor : Editor
             true);
         _styleList.drawHeaderCallback = DrawStyleListHeader;
         _styleList.drawElementCallback = DrawStyleListElements;
+        _styleList.onAddCallback = AddStyleListElement;
         
         _transitedPanelList = new ReorderableList(serializedObject, serializedObject.FindProperty("transitedPanelNames"), true, true, true,
             true);
         _transitedPanelList.drawHeaderCallback = DrawPanelListHeader;
         _transitedPanelList.drawElementCallback = DrawPanelListElements;
+    }
+
+    private void AddStyleListElement(ReorderableList list)
+    {
+        int index = list.serializedProperty.arraySize;
+        list.serializedProperty.arraySize++;
+        list.index = 0;
+        SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
+        element.FindPropertyRelative("styleName").stringValue = string.Empty;
+        element.FindPropertyRelative("isTriggerStyle").boolValue = false;
+        element.FindPropertyRelative("_selectedStyleClassIndex").intValue = 0;
+        element.FindPropertyRelative("swappedClass").stringValue = string.Empty;
+        element.FindPropertyRelative("isTriggerStyleOnStart").boolValue = false;
     }
 
     private void DrawStyleListHeader(Rect rect)
@@ -68,8 +85,14 @@ public class TransitionDataEditor : Editor
     private void Read(Object uss)
     {
         if (uss is null) return;
-        
         string path = AssetDatabase.GetAssetPath(uss);
+        if (!Path.GetExtension(path).Contains(".uss"))
+        {
+            _styleSheetIsInvalidated = true;
+            return;
+        }
+
+        _styleSheetIsInvalidated = false;
         using FileStream fs = new FileStream(path, FileMode.OpenOrCreate);
         using StreamReader reader = new StreamReader(fs);
         string css = reader.ReadToEnd();
@@ -155,6 +178,8 @@ public class TransitionDataEditor : Editor
         
         SerializedProperty element = _styleList.serializedProperty.GetArrayElementAtIndex(index);
         SerializedProperty _selectedStyleClassIndexProperty = element.FindPropertyRelative("_selectedStyleClassIndex");
+        // styleName
+        string styleName = element.FindPropertyRelative("styleName").stringValue;
         
         Rect firstLabelRect = new Rect(rect.x, rect.y, 169, EditorGUIUtility.singleLineHeight);
         Rect firstPropertyRect = new Rect(rect.x + 169, rect.y, 200, EditorGUIUtility.singleLineHeight);
@@ -164,13 +189,34 @@ public class TransitionDataEditor : Editor
         Rect thirdPropertyRect = new Rect(rect.x + 660, rect.y, 169, EditorGUIUtility.singleLineHeight);
         Rect fourthLabelRect = new Rect(rect.x + 850, rect.y, 128, EditorGUIUtility.singleLineHeight);
         Rect fourthPropertyRect = new Rect(rect.x + 1000, rect.y, 16, EditorGUIUtility.singleLineHeight);
-        // styleName
+
         EditorGUI.LabelField(firstLabelRect, $"{index}{(index == 2 ? "nd" : index == 3 ? "rd" : "st")} style class");
-        
         // pop up style
-        _selectedStyleClassIndexProperty.intValue = EditorGUI.Popup(firstPropertyRect, _selectedStyleClassIndexProperty.intValue, _data.styleSheetsClassNames.ToArray());
-        element.FindPropertyRelative("styleName").stringValue = _data.styleSheetsClassNames[_selectedStyleClassIndexProperty.intValue];
-        
+        if (_styleSheet.objectReferenceValue is null)
+        {
+            // if there is no styleSheet, you can write styleName directly.
+            element.FindPropertyRelative("styleName").stringValue = new string(EditorGUI.TextField(firstPropertyRect, styleName));
+        }
+        else
+        {
+            // if styleSheet is changed or invalidated, you cannot select.
+            if (!_data.styleSheetsClassNames.Contains(styleName) && !string.IsNullOrEmpty(styleName) || _styleSheetIsInvalidated)
+            {
+                GUI.enabled = false;
+                element.FindPropertyRelative("styleName").stringValue = new string(EditorGUI.TextField(firstPropertyRect, styleName));
+                GUI.enabled = true;
+            }
+            // if styleSheet is valid, you can select.
+            else
+            {
+                _selectedStyleClassIndexProperty.intValue = EditorGUI.Popup(
+                    firstPropertyRect
+                    , _selectedStyleClassIndexProperty.intValue
+                    , _data.styleSheetsClassNames.ToArray());
+                element.FindPropertyRelative("styleName").stringValue =  new string(_data.styleSheetsClassNames[_selectedStyleClassIndexProperty.intValue]);   
+            }
+        }
+
         // isTriggerStyle : animation class
         EditorGUI.LabelField(secondLabelRect, $"Is Animation Class");
         EditorGUI.PropertyField(secondPropertyRect, element.FindPropertyRelative("isTriggerStyle"), GUIContent.none);
@@ -190,15 +236,18 @@ public class TransitionDataEditor : Editor
         SerializedProperty element = _transitedPanelList.serializedProperty.GetArrayElementAtIndex(index);
         EditorGUI.LabelField(new Rect(rect.x, rect.y, 256, EditorGUIUtility.singleLineHeight),
             "Animated Visual Element's name : ");
-        
+
+        if (index >= _elementIndices.Count)
+        {
+            _elementIndices.AddRange(Enumerable.Range(0, _elementInfos.Count));
+        }
         if (_uxml.objectReferenceValue is not null)
         {
             GetVisualElementNames(_uxml.objectReferenceValue);
             // pop up style
-            int elementNameIndex = 0;
-            elementNameIndex = EditorGUI.Popup(new Rect(rect.x + 320, rect.y, 256, EditorGUIUtility.singleLineHeight),
-                elementNameIndex, _elementInfos.ToArray());
-            element.stringValue = selectedName = new string(_elementInfos[elementNameIndex]);
+            _elementIndices[index] = EditorGUI.Popup(new Rect(rect.x + 320, rect.y, 256, EditorGUIUtility.singleLineHeight),
+                _elementIndices[index], _elementInfos.ToArray());
+            element.stringValue = selectedName = new string(_elementInfos[_elementIndices[index]]);
         }
         else
         {
