@@ -12,6 +12,13 @@ using Object = UnityEngine.Object;
 using UnityEditor;
 #endif
 
+public enum RegisterOperatorType
+{
+    Plus,
+    Minus,
+    Equals
+}
+
 public sealed class UxmlToScript : MonoBehaviour
 {
     [SerializeField] private VisualTreeAsset uxml;
@@ -248,23 +255,24 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof({modelMonoName}))]
 public class {monoName} : MonoBehaviour
 {{
-   [SerializeField] private {modelMonoName} {modelMonoVariableName};
-   // TODO :: Add your Event here
+    [SerializeField] private {modelMonoName} {modelMonoVariableName};
+    // TODO :: Add your Event here
    
-   private void OnEnable()
-   {{
+    private void OnEnable()
+    {{
         StartCoroutine(Init());    
-   }}        
+    }}        
                 
-   private void OnDisable()
-   {{ 
+    private void OnDisable()
+    {{ 
         StopAllCoroutines();
-   }}
+        ReleaseEvents();
+    }}
                 
-   // Note :: There is a UnityEngine's bug of rootVisualElement initialization.
-   //        So, I used Coroutine to wait for rootVisualElement initialization.
-   private IEnumerator Init()
-   {{
+    // Note :: There is a UnityEngine's bug of rootVisualElement initialization.
+    //        So, I used Coroutine to wait for rootVisualElement initialization.
+    private IEnumerator Init()
+    {{
         while({modelMonoVariableName} is null)
             yield return null;
 
@@ -272,8 +280,12 @@ public class {monoName} : MonoBehaviour
             yield return null;
 
         // element's events
-{(GenerateCtrlRegisterCallbacks(modelMonoVariableName))}
-   }}
+{(GenerateCtrlRegisterCallbacks(modelMonoVariableName, RegisterOperatorType.Plus))}
+    }}
+    private void ReleaseEvents()
+    {{
+{(GenerateCtrlRegisterCallbacks(modelMonoVariableName, RegisterOperatorType.Minus))}
+    }}
                 
     // TODO :: Implement your event callback here 
 {(GenerateCtrlCallbackMethods())}
@@ -317,7 +329,7 @@ public class {monoName} : MonoBehaviour
 
         return _classFieldBuilder.ToString();
     }
-    private string GenerateCtrlRegisterCallbacks(string modelMonoVariableName)
+    private string GenerateCtrlRegisterCallbacks(string modelMonoVariableName, RegisterOperatorType @operator)
     {
         _classFieldBuilder.Clear();
         
@@ -326,7 +338,7 @@ public class {monoName} : MonoBehaviour
         {
             (string type, string name) currentElement = _elementInfos[i];
             string snippet =
-                GenerateCallbackByVisualElementType(modelMonoVariableName, currentElement.type, currentElement.name);
+                GenerateCallbackByVisualElementType(modelMonoVariableName, currentElement.type, currentElement.name, @operator);
             if(string.IsNullOrEmpty(snippet)) continue;
             if(i == _elementInfos.Count - 1)
                 _classFieldBuilder.Append($"\t\t{snippet}");
@@ -356,38 +368,46 @@ public class {monoName} : MonoBehaviour
     }
 
     #region Register
-    private string GenerateCallbackByVisualElementType(string modelMonoVariableName, string type, string name)
+    private string GenerateCallbackByVisualElementType(string modelMonoVariableName, string type, string name, RegisterOperatorType @operator)
     {
         Span<char> replaceFirstCharacterString = new Span<char>(name.ToCharArray());
         replaceFirstCharacterString[0] = char.ToUpper(replaceFirstCharacterString[0]);
         string newName = replaceFirstCharacterString.ToString();
+        
+        string @operateSign = @operator switch
+        {
+            RegisterOperatorType.Plus => "+=",
+            RegisterOperatorType.Minus => "-=",
+            RegisterOperatorType.Equals => "=",
+            _ => throw new ArgumentOutOfRangeException(nameof(@operator), @operator, null)
+        };
         switch (type)
         {
             default:
                 return string.Empty;
             case nameof(Button):
-                return $@"{modelMonoVariableName}.{name}.clicked += On{newName}Clicked;";
+                return $@"{modelMonoVariableName}.{name}.clicked {operateSign} On{newName}Clicked;";
             case nameof(ScrollView):
-                return $@"{modelMonoVariableName}.{name}.verticalScroller.valueChanged += On{newName}VerticalValueChanged;
-        {modelMonoVariableName}.{name}.horizontalScroller.valueChanged += On{newName}HorizontalValueChanged;";
+                return $@"{modelMonoVariableName}.{name}.verticalScroller.valueChanged {operateSign} On{newName}VerticalValueChanged;
+        {modelMonoVariableName}.{name}.horizontalScroller.valueChanged {operateSign} On{newName}HorizontalValueChanged;";
             case nameof(ListView):
-                return $@"{modelMonoVariableName}.{name}.itemsAdded += On{newName}ItemsAdded;
-        {modelMonoVariableName}.{name}.itemsRemoved += On{newName}ItemsRemoved;
-        {modelMonoVariableName}.{name}.itemsSourceChanged += On{newName}itemsSourceChanged;
-        {modelMonoVariableName}.{name}.itemsChosen += On{newName}ItemsChosen;
-        {modelMonoVariableName}.{name}.makeItem += On{newName}MakeItem;
-        {modelMonoVariableName}.{name}.bindItem += On{newName}BindItem;
-        {modelMonoVariableName}.{name}.destroyItem += On{newName}DestroyItem;
-        {modelMonoVariableName}.{name}.unbindItem += On{newName}UnbindItem;";
+                return $@"{modelMonoVariableName}.{name}.itemsAdded {operateSign} On{newName}ItemsAdded;
+        {modelMonoVariableName}.{name}.itemsRemoved {operateSign} On{newName}ItemsRemoved;
+        {modelMonoVariableName}.{name}.itemsSourceChanged {operateSign} On{newName}itemsSourceChanged;
+        {modelMonoVariableName}.{name}.itemsChosen {operateSign} On{newName}ItemsChosen;
+        {modelMonoVariableName}.{name}.makeItem {operateSign} On{newName}MakeItem;
+        {modelMonoVariableName}.{name}.bindItem {operateSign} On{newName}BindItem;
+        {modelMonoVariableName}.{name}.destroyItem {operateSign} On{newName}DestroyItem;
+        {modelMonoVariableName}.{name}.unbindItem {operateSign} On{newName}UnbindItem;";
             case nameof(TreeView):
-                return $@"{modelMonoVariableName}.{name}.itemsSourceChanged += On{newName}itemsSourceChanged;
-        {modelMonoVariableName}.{name}.itemsChosen += On{newName}ItemsChosen;
-        {modelMonoVariableName}.{name}.makeItem += On{newName}MakeItem;
-        {modelMonoVariableName}.{name}.bindItem += On{newName}BindItem;
-        {modelMonoVariableName}.{name}.destroyItem += On{newName}DestroyItem;
-        {modelMonoVariableName}.{name}.unbindItem += On{newName}UnbindItem;";
+                return $@"{modelMonoVariableName}.{name}.itemsSourceChanged {operateSign} On{newName}itemsSourceChanged;
+        {modelMonoVariableName}.{name}.itemsChosen {operateSign} On{newName}ItemsChosen;
+        {modelMonoVariableName}.{name}.makeItem {operateSign} On{newName}MakeItem;
+        {modelMonoVariableName}.{name}.bindItem {operateSign} On{newName}BindItem;
+        {modelMonoVariableName}.{name}.destroyItem {operateSign} On{newName}DestroyItem;
+        {modelMonoVariableName}.{name}.unbindItem {operateSign} On{newName}UnbindItem;";
            case nameof(Scroller):
-                return $@"{modelMonoVariableName}.{name}.valueChanged += On{newName}ValueChanged;";
+                return $@"{modelMonoVariableName}.{name}.valueChanged {operateSign} On{newName}ValueChanged;";
             case nameof(Toggle):
             case nameof(TextField):
             case nameof(Foldout):
@@ -409,7 +429,12 @@ public class {monoName} : MonoBehaviour
             case nameof(Vector4Field):
             case nameof(Vector2IntField):
             case nameof(Vector3IntField):
-                return $@"{modelMonoVariableName}.{name}.RegisterValueChangedCallback(On{newName}ValueChanged);";
+                return @operator switch
+                {
+                    RegisterOperatorType.Plus or RegisterOperatorType.Equals => $@"{modelMonoVariableName}.{name}.RegisterValueChangedCallback(On{newName}ValueChanged);",
+                    RegisterOperatorType.Minus => $@"{modelMonoVariableName}.{name}.UnregisterValueChangedCallback(On{newName}ValueChanged);",
+                    _ => throw new ArgumentOutOfRangeException(nameof(@operator), @operator, null)
+                };
             // editor-Only
 #if UNITY_EDITOR
             case nameof(IMGUIContainer):
@@ -431,8 +456,14 @@ public class {monoName} : MonoBehaviour
             case nameof(UnityEditor.UIElements.ToolbarPopupSearchField):
             case nameof(UnityEditor.UIElements.ObjectField):
             case nameof(UnityEditor.UIElements.PropertyField):
-                return $@"{modelMonoVariableName}.{name}.RegisterValueChangedCallback(On{newName}ValueChanged);
-";
+                return @operator switch
+                {
+                    RegisterOperatorType.Plus or RegisterOperatorType.Equals =>
+                        $@"{modelMonoVariableName}.{name}.RegisterValueChangedCallback(On{newName}ValueChanged);",
+                    RegisterOperatorType.Minus =>
+                        $@"{modelMonoVariableName}.{name}.UnregisterValueChangedCallback(On{newName}ValueChanged);",
+                    _ => throw new ArgumentOutOfRangeException(nameof(@operator), @operator, null)
+                };
 #endif
         }
     }
