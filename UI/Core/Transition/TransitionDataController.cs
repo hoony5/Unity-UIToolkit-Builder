@@ -138,7 +138,7 @@ public class TransitionDataController : MonoBehaviour
     public void AddStyleSheet(VisualElement target, TransitionData data)
     {
         // if not set, return
-        if(target is null || data.styleSheet) return;
+        if(target is null || data.styleSheet is null) return;
         
         if (target.styleSheets.Contains(data.styleSheet)) return;
         target.styleSheets.Add(data.styleSheet);
