@@ -174,8 +174,6 @@ public class TransitionDataEditor : Editor
 
     private void DrawStyleListElements(Rect rect, int index, bool isActive, bool isFocused)
     {
-        if (_data.styleSheetsClassNames.Count == 0) return;
-        
         SerializedProperty element = _styleList.serializedProperty.GetArrayElementAtIndex(index);
         SerializedProperty _selectedStyleClassIndexProperty = element.FindPropertyRelative("_selectedStyleClassIndex");
         // styleName
@@ -200,7 +198,10 @@ public class TransitionDataEditor : Editor
         else
         {
             // if styleSheet is changed or invalidated, you cannot select.
-            if (!_data.styleSheetsClassNames.Contains(styleName) && !string.IsNullOrEmpty(styleName) || _styleSheetIsInvalidated)
+            if (!_data.styleSheetsClassNames.Contains(styleName) 
+                && !string.IsNullOrEmpty(styleName) 
+                || _data.styleSheetsClassNames.Count <= _selectedStyleClassIndexProperty.intValue
+                || _styleSheetIsInvalidated)
             {
                 GUI.enabled = false;
                 element.FindPropertyRelative("styleName").stringValue = new string(EditorGUI.TextField(firstPropertyRect, styleName));
