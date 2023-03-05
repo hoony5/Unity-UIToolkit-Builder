@@ -10,7 +10,8 @@
 3. Add Script Generator
 4. Create UI Structure Prefab.
 5. Update UI Animator Transition Work Flow
-
+6. If don't want to get on the uxml element by something query,
+    would use prefix "___" .  ex. "___top-panel"
 ## 1. Intro
 
 I made for easy adding or removing uss class to use unity new UI System .
