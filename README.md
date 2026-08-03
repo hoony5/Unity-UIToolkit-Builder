@@ -1,57 +1,131 @@
-# Unity-UIToolkit-Transitions
+# UI Toolkit Transitions
 
-## To do List
-1. Refactoring Codes
+Data-driven USS class transitions for Unity UI Toolkit.
 
-## Update Note. 0.5v
+Animate UI by toggling USS classes on named visual elements — the USS
+`transition-*` properties do the animating, and every transition is authored
+as a ScriptableObject in the Inspector. Targets the Unity 6 line
+(`6000.0` and up).
 
-1. Add Uxml Reader
-2. Add USS Reader
-3. Add Script Generator
-4. Create UI Structure Prefab.
-5. Update UI Animator Transition Work Flow
-6. If don't want to get on the uxml element by something query,
-    would use prefix "___" .  ex. "___top-panel"
-## 1. Intro
+## Install
 
-I made for easy adding or removing uss class to use unity new UI System .
+Unity Package Manager → **Add package from git URL**:
 
-## 2. SetUp
+```
+https://github.com/hoony5/Unity-UIToolkit-Builder.git
+```
 
-#### 1. Create the Panel Setting.
+Then import the **Basic Transition** sample from the package page in the
+Package Manager (PanelSettings, USS/UXML, transition assets, prefabs).
 
-![image](https://user-images.githubusercontent.com/123732566/215467563-6780aa2d-6a74-447c-8663-919d4064f999.png)
+## Quick start
 
-#### 2. Place on hierarchy 'UI Animation'
+1. Create/prepare a `PanelSettings` asset and a `UIDocument` in your scene.
 
-![image](https://user-images.githubusercontent.com/123732566/215467799-eff2e2c9-361a-4616-b8d1-d14adae061a5.png)
+2. Place the `UIAnimator` prefab (from the sample) next to it — it carries
+   the `UIAnimator` + `TransitionDataController` pair and needs the
+   `UIDocument` reference assigned.
 
-#### 3. Make up simple uss class.
+3. Write USS classes with transition properties:
 
-![image](https://user-images.githubusercontent.com/123732566/215468139-36ea6c7d-b1e5-4703-9546-135bc9582370.png)
+```css
+.panel--go_right {
+    transition-duration: 0.5s;
+    translate: 100% 0;
+    transition-timing-function: ease-out-elastic;
+}
 
-#### 5. Create the Transition Data.
+.panel--show {
+    transition-duration: 1.5s;
+    translate: 0 0;
+}
+```
 
-![image](https://user-images.githubusercontent.com/123732566/215468252-8258e99a-c697-4c34-a46c-a2aaad10c8e9.png)
+4. Create a **TransitionData** asset
+   (`Create > ScriptableObject > VisualElement > TransitionStyleClassNames`):
+   - assign the USS (and optionally the UXML, used only by the editor popup),
+   - pick target element names from the popup (fed by scanning the UXML),
+   - add style classes from the dropdown (fed by parsing the USS) and flag
+     `Animation Class` / `Swapped Class` / `Start Awake Class` per entry.
 
-![test](https://user-images.githubusercontent.com/123732566/222043075-7a5d088a-24e3-4a44-bfcd-6c6e9edc8e80.gif)
+   ![transition data](https://user-images.githubusercontent.com/123732566/215468252-8258e99a-c697-4c34-a46c-a2aaad10c8e9.png)
 
-#### 6. Fill Data by some of the the Hieracy's Visual Elements.
+5. Assign the TransitionData (or a **TransitionDataContainer** grouping
+   several of them) to the controller, plus any `onPlayStart` / `onPlayEnd`
+   listeners you need.
 
-<img width="989" alt="1" src="https://user-images.githubusercontent.com/123732566/221946610-913e95d4-f881-4c0e-8538-137757cfa883.png">
+   ![preview](https://user-images.githubusercontent.com/123732566/222043075-7a5d088a-24e3-4a44-bfcd-6c6e9edc8e80.gif)
 
-![image](https://user-images.githubusercontent.com/123732566/215468864-202d208f-473e-4bd6-968f-e6b7fbc78aed.png)
+6. Play transitions from code:
 
-#### 7. Assign 'Panel Setting', Transition Data or Transition Events.
+```csharp
+using UIToolkitTransitions;
 
-![ab](https://user-images.githubusercontent.com/123732566/221954337-2f8af1b8-10e2-4b14-8108-7a2c21b1a6e5.gif)
+public class IntroFlow : MonoBehaviour
+{
+    [SerializeField] private UIAnimator uiAnimator;
 
-#### 8. Creatable Runtime Instance ( alloc no zero )
-![test](https://user-images.githubusercontent.com/123732566/222045672-566c7a50-5f51-47cd-9611-0bd5f824520e.gif)
+    public async void ShowIntro()
+    {
+        await uiAnimator.PlayAsync("root");      // resolves on TransitionEndEvent
+        await uiAnimator.PlayAsync("title");
+    }
 
-#### 9. Generate Source Code for Uxml
-![test2](https://user-images.githubusercontent.com/123732566/222045863-06bd47c7-f0c5-47f1-a343-2fe438d3d124.gif)
+    public void HideIntro()
+    {
+        uiAnimator.ReversePlay("root");          // fire and forget
+    }
+}
+```
 
-## 3. Note
+`PlayAsync` / `ReversePlayAsync` accept a `CancellationToken` — recommended,
+because an element whose USS runs no transition never fires
+`TransitionEndEvent` and the task would stay pending.
 
-####
+## Runtime API
+
+| Member | Purpose |
+| --- | --- |
+| `UIAnimator.Play(name)` / `ReversePlay(name)` | Toggle the animation classes of the element |
+| `UIAnimator.PlayAsync(name, ct)` / `ReversePlayAsync(name, ct)` | Same, but await the transition end |
+| `UIAnimator.OnToggle(name, setActive)` | Manual add/remove of the animation classes |
+| `TransitionDataController.Init()` / `Release()` | (Re)bind or clear all registered elements |
+| `TransitionDataContainer` | Group TransitionData assets; assign groups to the controller |
+| `onPlayStart` / `onPlayEnd` | UnityEvents forwarding `TransitionStartEvent` / `TransitionEndEvent` |
+
+## Editor tools
+
+- **TransitionData inspector** — UI Toolkit based. Target element names come
+  from a popup scanning the assigned UXML; style classes come from a dropdown
+  parsing the assigned USS. USS/UXML are parsed only when the reference
+  changes, never per repaint.
+- **Script Generator** (`UxmlToScript`) — generates a Model MonoBehaviour
+  (cached `Q<T>` queries per named element) and a Controller MonoBehaviour
+  (event registration + callback stubs) from a UXML asset, and can instance
+  the pair with a wired `UIDocument` into the hierarchy.
+- **USSReader** — lists every class selector defined in a USS asset.
+
+## Conventions & notes
+
+- Elements whose name contains `___` are ignored by the editor tooling
+  (popup + code generator). Use it for structural elements you never animate,
+  e.g. `___background`.
+- USS `display` is **not** transitionable. Hide with `visibility: hidden` +
+  `opacity: 0` (see the sample `.hidden` / `.show` classes).
+- Sample assets live in `Samples~/` — they are not part of your build until
+  you import the sample.
+
+## Package layout
+
+```
+Runtime/    UIAnimator, TransitionDataController, TransitionData,
+            TransitionClass, TransitionDataContainer   (asmdef: Runtime)
+Editor/     inspectors, USS/UXML parsers, code generator (asmdef: Editor)
+Tests/      EditMode tests for parsers and data defaults
+Samples~/   Basic Transition sample
+Documentation~/
+```
+
+## License
+
+[Mozilla Public License 2.0](LICENSE)

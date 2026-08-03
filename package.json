@@ -1,0 +1,27 @@
+{
+  "name": "com.hoony5.uitoolkit-transitions",
+  "version": "1.0.0",
+  "displayName": "UI Toolkit Transitions",
+  "description": "Data-driven USS class transitions for Unity UI Toolkit. Drive animations by toggling USS classes on named visual elements through ScriptableObject transition data, with editor tooling for UXML/USS inspection and model/controller code generation.",
+  "unity": "6000.0",
+  "documentationUrl": "https://github.com/hoony5/Unity-UIToolkit-Builder",
+  "licensesUrl": "https://github.com/hoony5/Unity-UIToolkit-Builder/blob/main/LICENSE",
+  "keywords": [
+    "ui",
+    "uitoolkit",
+    "transition",
+    "animation",
+    "uss"
+  ],
+  "author": {
+    "name": "hoony5",
+    "url": "https://github.com/hoony5"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Transition",
+      "description": "Transition data assets, USS styles, PanelSettings, prefabs and generated model/controller scripts.",
+      "path": "Samples~/BasicTransition"
+    }
+  ]
+}

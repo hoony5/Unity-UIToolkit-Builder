@@ -1,0 +1,5 @@
+{
+  "displayName": "Basic Transition",
+  "description": "Transition data assets, USS styles, PanelSettings, prefabs and generated model/controller scripts.",
+  "createSeparatePackage": false
+}
