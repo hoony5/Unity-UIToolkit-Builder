@@ -1,284 +1,185 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using UnityEngine;
 using UnityEditor;
-using UnityEditorInternal;
-using UIToolkitTransitions;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace UIToolkitTransitions.Editor
 {
-[CustomEditor(typeof(TransitionData))]
-public class TransitionDataEditor : Editor
-{
-    private const string IgnoreElementNameCase = "___";
-    private const string TransitedPanelNameLabel = "Style Target VisualElement";
-    private const string TransitedClassesLabel = "Style Classes";
-    
-    private TransitionData _data;
-    private ReorderableList _styleList;
-    private ReorderableList _transitedPanelList;
-
-    private SerializedProperty _uxml;
-    private SerializedProperty _styleSheet;
-    private SerializedProperty _transitedPanelNames;
-    
-    private bool _styleSheetIsInvalidated = true;
-    private bool _styleSheetIsNull = true;
-    private bool _transitedPanelIsNull = true;
-    
-    private GUIContent _transitedPanelLabel;
-    private GUIContent _transitedClassesLabel;
-
-    private static GUIStyle _basicStyle;
-    private static GUIStyle _largeFontStyle;
-
-    private List<string> _elementInfos = new List<string>(72);
-    private List<int> _elementIndices = new List<int>(72);
-    private void OnEnable()
+    [CustomEditor(typeof(TransitionData))]
+    public class TransitionDataEditor : UnityEditor.Editor
     {
-        _data = target as TransitionData;
+        private const int CacheRefreshIntervalMs = 300;
+        private const float SectionSpacing = 15f;
+        private const float PanelRowHeight = 22f;
+        private const float StyleRowHeight = 46f;
+        private const string UssFileExtension = ".uss";
 
-        _elementIndices = Enumerable.Repeat(0, _elementIndices.Capacity - 1).ToList();
-        _uxml = serializedObject.FindProperty("uxml");
-        _styleSheet = serializedObject.FindProperty("styleSheet");
-        _transitedPanelNames = serializedObject.FindProperty("transitedPanelNames");
-        
-        _transitedPanelLabel = new GUIContent(TransitedPanelNameLabel);
-        _transitedClassesLabel = new GUIContent(TransitedClassesLabel);
+        private TransitionData _data;
 
-        _styleList = new ReorderableList(serializedObject, serializedObject.FindProperty("styleClasses"), true, true, true,
-            true);
-        _styleList.drawHeaderCallback = DrawStyleListHeader;
-        _styleList.drawElementCallback = DrawStyleListElements;
-        _styleList.onAddCallback = AddStyleListElement;
-        
-        _transitedPanelList = new ReorderableList(serializedObject, serializedObject.FindProperty("transitedPanelNames"), true, true, true,
-            true);
-        _transitedPanelList.drawHeaderCallback = DrawPanelListHeader;
-        _transitedPanelList.drawElementCallback = DrawPanelListElements;
-    }
+        private SerializedProperty _uxmlProperty;
+        private SerializedProperty _styleSheetProperty;
+        private SerializedProperty _transitedPanelNamesProperty;
+        private SerializedProperty _styleClassesProperty;
 
-    private void AddStyleListElement(ReorderableList list)
-    {
-        int index = list.serializedProperty.arraySize;
-        list.serializedProperty.arraySize++;
-        list.index = 0;
-        SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
-        element.FindPropertyRelative("styleName").stringValue = string.Empty;
-        element.FindPropertyRelative("isTriggerStyle").boolValue = false;
-        element.FindPropertyRelative("_selectedStyleClassIndex").intValue = 0;
-        element.FindPropertyRelative("swappedClass").stringValue = string.Empty;
-        element.FindPropertyRelative("isTriggerStyleOnStart").boolValue = false;
-    }
+        private ListView _panelListView;
+        private ListView _styleListView;
+        private HelpBox _styleSheetHelp;
 
-    private void DrawStyleListHeader(Rect rect)
-    {
-        EditorGUI.LabelField(rect, TransitedClassesLabel);
-    }
-    private void DrawPanelListHeader(Rect rect)
-    {
-        EditorGUI.LabelField(rect, TransitedPanelNameLabel);
-    }
+        private Object _cachedUxml;
+        private Object _cachedStyleSheet;
+        private readonly List<string> _elementChoices = new List<string>();
 
-    // styleName
-    // isTriggerStyle
-    private void Read(Object uss)
-    {
-        if (uss is null) return;
-        string path = AssetDatabase.GetAssetPath(uss);
-        if (!Path.GetExtension(path).Contains(".uss"))
+        public override VisualElement CreateInspectorGUI()
         {
-            _styleSheetIsInvalidated = true;
-            return;
+            _data = (TransitionData)target;
+
+            _uxmlProperty = serializedObject.FindProperty("uxml");
+            _styleSheetProperty = serializedObject.FindProperty("styleSheet");
+            _transitedPanelNamesProperty = serializedObject.FindProperty("transitedPanelNames");
+            _styleClassesProperty = serializedObject.FindProperty("styleClasses");
+
+            var root = new VisualElement();
+
+            root.Add(new PropertyField(_uxmlProperty,
+                "UXML : editor workflow only, used to pick animated target panels. Not required at runtime."));
+            root.Add(new PropertyField(_styleSheetProperty));
+
+            _styleSheetHelp = new HelpBox(
+                "There is no styleSheet. You should assign the uss file.",
+                HelpBoxMessageType.Warning);
+            root.Add(_styleSheetHelp);
+
+            AddSectionSpace(root);
+            root.Add(CreateHeaderLabel("Style Target VisualElement"));
+            root.Add(CreatePanelList());
+
+            AddSectionSpace(root);
+            root.Add(CreateHeaderLabel("Style Classes"));
+            root.Add(CreateStyleList());
+            root.Add(CreateHelpTexts());
+
+            RefreshCachesIfDirty();
+            root.schedule.Execute(RefreshCachesIfDirty).Every(CacheRefreshIntervalMs);
+
+            return root;
         }
 
-        _styleSheetIsInvalidated = false;
-        using FileStream fs = new FileStream(path, FileMode.OpenOrCreate);
-        using StreamReader reader = new StreamReader(fs);
-        string css = reader.ReadToEnd();
-        
-        // .selector , must have block nested
-        string pattern = @"(?<=^|\n)(?<className>\.[a-zA-Z0-9_\-]+)";
-
-        MatchCollection matches = Regex.Matches(css, pattern, RegexOptions.Multiline);
-
-        _data.styleSheetsClassNames.Clear();
-        if (matches.Count == 0) return;
-        
-        foreach (Match match in matches)
+        private ListView CreatePanelList()
         {
-            string selector = match.Groups["className"].Value.TrimStart('.');
-            if (!_data.styleSheetsClassNames.Contains(selector))
-                _data.styleSheetsClassNames.Add(selector);
-        }
-
-        reader.Close();
-        fs.Close();
-    }
-
-    public override void OnInspectorGUI()
-    {
-        _basicStyle = new GUIStyle(GUI.skin.box)
-            { fontSize = 12, alignment = TextAnchor.MiddleCenter, richText = true, stretchWidth = true };
-        _largeFontStyle = new GUIStyle(GUI.skin.box)
-            { fontSize = 14, alignment = TextAnchor.MiddleLeft, richText = true, stretchWidth = true };
-        
-        serializedObject.Update();
-
-        EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space(10);
-        EditorGUILayout.PropertyField(_uxml, new GUIContent("UXML : This is for editor work flow, get animated target Panel, not runtime. null is fine."));
-        EditorGUILayout.Space(10);
-        
-        if(_styleSheet.objectReferenceValue is not null)
-            Read(_styleSheet.objectReferenceValue);
-        
-        EditorGUILayout.PropertyField(_styleSheet);
-        _styleSheetIsNull = _styleSheet.objectReferenceValue is null;
-        if (_styleSheetIsNull)
-        {
-            EditorGUILayout.LabelField("There is no <color=red>styleSheet</color>. You Should assign the uss file.",
-                _basicStyle);
-        }
-
-        EditorGUILayout.Space(15);
-
-        // animated Panel
-       // EditorGUILayout.PropertyField(_transitedPanelNames, _transitedPanelLabel);
-        
-       _transitedPanelList.DoLayoutList();
-       
-        _transitedPanelIsNull = _transitedPanelNames.arraySize == 0;
-        if (_transitedPanelIsNull)
-        {
-            EditorGUILayout.LabelField(
-                "There is no <color=red>VisualElement</color>. Assign the VisualElement's name in the Uxml Hierarchy..",
-                _basicStyle);
-        }
-
-        EditorGUILayout.Space(15);
-        _styleList.DoLayoutList();
-        EditorGUILayout.LabelField(
-            "When you need to use classes of <color=lime>styleSheet</color>, you save it on the scriptableObject.\n\n <color=lime>If the Animation Class toggle was on</color>, it could be added to styleSheet on runtime. \n\n will be executed in order .",
-            _largeFontStyle);
-        EditorGUILayout.Space(15);
-        EditorGUILayout.LabelField(
-            @"<color=lime>AnimationClass</color> : Transition class Name
-<color=lime>Swap Class</color> : When AnimationClass transitioning go on, swapped class,not allowing null or empty, will be added or removed to styleSheet on runtime. <color=lime>It is interExchange with AnimationClass.</color>
-<color=lime>Start Awake Class</color> : If start game, not swapped class but this class will be added to styleSheet on runtime.",
-            _largeFontStyle);
-        EditorGUILayout.EndVertical();
-
-        serializedObject.ApplyModifiedProperties();
-    }
-
-    private void DrawStyleListElements(Rect rect, int index, bool isActive, bool isFocused)
-    {
-        SerializedProperty element = _styleList.serializedProperty.GetArrayElementAtIndex(index);
-        SerializedProperty _selectedStyleClassIndexProperty = element.FindPropertyRelative("_selectedStyleClassIndex");
-        // styleName
-        string styleName = element.FindPropertyRelative("styleName").stringValue;
-        
-        Rect firstLabelRect = new Rect(rect.x, rect.y, 169, EditorGUIUtility.singleLineHeight);
-        Rect firstPropertyRect = new Rect(rect.x + 169, rect.y, 200, EditorGUIUtility.singleLineHeight);
-        Rect secondLabelRect = new Rect(rect.x + 400, rect.y, 128, EditorGUIUtility.singleLineHeight);
-        Rect secondPropertyRect = new Rect(rect.x + 528, rect.y, 16, EditorGUIUtility.singleLineHeight);
-        Rect thirdLabelRect = new Rect(rect.x + 560, rect.y, 100, EditorGUIUtility.singleLineHeight);
-        Rect thirdPropertyRect = new Rect(rect.x + 660, rect.y, 169, EditorGUIUtility.singleLineHeight);
-        Rect fourthLabelRect = new Rect(rect.x + 850, rect.y, 128, EditorGUIUtility.singleLineHeight);
-        Rect fourthPropertyRect = new Rect(rect.x + 1000, rect.y, 16, EditorGUIUtility.singleLineHeight);
-
-        EditorGUI.LabelField(firstLabelRect, $"{index}{(index == 2 ? "nd" : index == 3 ? "rd" : "st")} style class");
-        // pop up style
-        if (_styleSheet.objectReferenceValue is null)
-        {
-            // if there is no styleSheet, you can write styleName directly.
-            element.FindPropertyRelative("styleName").stringValue = new string(EditorGUI.TextField(firstPropertyRect, styleName));
-        }
-        else
-        {
-            // if styleSheet is changed or invalidated, you cannot select.
-            if (!_data.styleSheetsClassNames.Contains(styleName) 
-                && !string.IsNullOrEmpty(styleName) 
-                || _data.styleSheetsClassNames.Count <= _selectedStyleClassIndexProperty.intValue
-                || _styleSheetIsInvalidated)
+            _panelListView = new ListView
             {
-                GUI.enabled = false;
-                element.FindPropertyRelative("styleName").stringValue = new string(EditorGUI.TextField(firstPropertyRect, styleName));
-                GUI.enabled = true;
+                bindingPath = "transitedPanelNames",
+                fixedItemHeight = PanelRowHeight,
+                reorderable = true,
+                showAddRemoveFooter = true,
+                makeItem = () => new PanelNameRow(),
+                bindItem = (element, index) =>
+                    ((PanelNameRow)element).Bind(_transitedPanelNamesProperty.GetArrayElementAtIndex(index), _elementChoices),
+                unbindItem = (element, _) => ((PanelNameRow)element).Unbind(),
+            };
+            return _panelListView;
+        }
+
+        private ListView CreateStyleList()
+        {
+            _styleListView = new ListView
+            {
+                bindingPath = "styleClasses",
+                fixedItemHeight = StyleRowHeight,
+                reorderable = true,
+                showAddRemoveFooter = true,
+                makeItem = () => new StyleClassRow(),
+                bindItem = (element, index) =>
+                    ((StyleClassRow)element).Bind(_styleClassesProperty.GetArrayElementAtIndex(index), _data.styleSheetsClassNames),
+                unbindItem = (element, _) => ((StyleClassRow)element).Unbind(),
+            };
+            return _styleListView;
+        }
+
+        private void RefreshCachesIfDirty()
+        {
+            if (_uxmlProperty.objectReferenceValue != _cachedUxml)
+            {
+                _cachedUxml = _uxmlProperty.objectReferenceValue;
+                RebuildElementChoices();
             }
-            // if styleSheet is valid, you can select.
-            else
+
+            if (_styleSheetProperty.objectReferenceValue != _cachedStyleSheet)
             {
-                _selectedStyleClassIndexProperty.intValue = EditorGUI.Popup(
-                    firstPropertyRect
-                    , _selectedStyleClassIndexProperty.intValue
-                    , _data.styleSheetsClassNames.ToArray());
-                element.FindPropertyRelative("styleName").stringValue =  new string(_data.styleSheetsClassNames[_selectedStyleClassIndexProperty.intValue]);   
+                _cachedStyleSheet = _styleSheetProperty.objectReferenceValue;
+                RebuildStyleSheetClassChoices();
             }
         }
 
-        // isTriggerStyle : animation class
-        EditorGUI.LabelField(secondLabelRect, $"Is Animation Class");
-        EditorGUI.PropertyField(secondPropertyRect, element.FindPropertyRelative("isTriggerStyle"), GUIContent.none);
+        private void RebuildElementChoices()
+        {
+            _elementChoices.Clear();
 
-        // initStyle : animation class
-        EditorGUI.LabelField(new Rect(thirdLabelRect), $"Swapped Class");
-        EditorGUI.PropertyField(thirdPropertyRect, element.FindPropertyRelative("swappedClass"), GUIContent.none);
-        
-        // initStyle : animation class
-        EditorGUI.LabelField(fourthLabelRect, $"Start Awake Class");
-        EditorGUI.PropertyField(fourthPropertyRect, element.FindPropertyRelative("isTriggerStyleOnStart"), GUIContent.none);
+            if (_cachedUxml is not null)
+            {
+                string uxmlPath = AssetDatabase.GetAssetPath(_cachedUxml);
+                if (!string.IsNullOrEmpty(uxmlPath) && File.Exists(uxmlPath))
+                {
+                    foreach (UxmlElementInfo info in UxmlElementScanner.Scan(File.ReadAllText(uxmlPath)))
+                        _elementChoices.Add(info.ElementName);
+                }
+            }
+
+            _panelListView?.RefreshItems();
+        }
+
+        private void RebuildStyleSheetClassChoices()
+        {
+            _data.styleSheetsClassNames.Clear();
+
+            if (_cachedStyleSheet is not null)
+            {
+                string ussPath = AssetDatabase.GetAssetPath(_cachedStyleSheet);
+                if (!string.IsNullOrEmpty(ussPath)
+                    && Path.GetExtension(ussPath) == UssFileExtension
+                    && File.Exists(ussPath))
+                {
+                    _data.styleSheetsClassNames.AddRange(UssClassParser.ParseClassNames(File.ReadAllText(ussPath)));
+                }
+            }
+
+            _styleSheetHelp.style.display = _cachedStyleSheet is null ? DisplayStyle.Flex : DisplayStyle.None;
+            _styleListView?.RefreshItems();
+        }
+
+        private static void AddSectionSpace(VisualElement root)
+        {
+            root.Add(new VisualElement { style = { height = SectionSpacing } });
+        }
+
+        private static Label CreateHeaderLabel(string text)
+        {
+            return new Label(text)
+            {
+                style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 }
+            };
+        }
+
+        private VisualElement CreateHelpTexts()
+        {
+            var container = new VisualElement();
+            container.style.marginTop = SectionSpacing;
+
+            container.Add(new HelpBox(
+                "Save the styleSheet classes you want to drive here.\n" +
+                "When an Animation Class toggle is on, the class can be added to the element at runtime.\n" +
+                "Classes are applied in order.",
+                HelpBoxMessageType.None));
+
+            container.Add(new HelpBox(
+                "Animation Class : transition class name.\n" +
+                "Swapped Class : while the Animation Class transition runs, this class is added or removed as its counterpart. It is interchanged with the Animation Class.\n" +
+                "Start Awake Class : on game start this class is applied instead of the swapped class.",
+                HelpBoxMessageType.None));
+
+            return container;
+        }
     }
-
-    private void DrawPanelListElements(Rect rect, int index, bool isactive, bool isfocused)
-    {
-        string selectedName = "";
-        SerializedProperty element = _transitedPanelList.serializedProperty.GetArrayElementAtIndex(index);
-        EditorGUI.LabelField(new Rect(rect.x, rect.y, 256, EditorGUIUtility.singleLineHeight),
-            "Animated Visual Element's name : ");
-
-        if (index >= _elementIndices.Count)
-        {
-            _elementIndices.AddRange(Enumerable.Range(0, _elementInfos.Count));
-        }
-        if (_uxml.objectReferenceValue is not null)
-        {
-            GetVisualElementNames(_uxml.objectReferenceValue);
-            // pop up style
-            _elementIndices[index] = EditorGUI.Popup(new Rect(rect.x + 320, rect.y, 256, EditorGUIUtility.singleLineHeight),
-                _elementIndices[index], _elementInfos.ToArray());
-            element.stringValue = selectedName = new string(_elementInfos[_elementIndices[index]]);
-        }
-        else
-        {
-            GUI.enabled = false;
-            selectedName = EditorGUI.TextField(new Rect(rect.x + 320, rect.y, 256, EditorGUIUtility.singleLineHeight),
-                element.stringValue);
-            GUI.enabled = true;
-        }
-    }
-    private void GetVisualElementNames(Object uxml)
-    {
-#if UNITY_EDITOR
-        if (!uxml) return;
-        string path = UnityEditor.AssetDatabase.GetAssetPath(uxml);
-#endif
-        XDocument document = XDocument.Load(path);
-        IEnumerable<string> elementNames = document.Elements().Descendants().Select(i => i.Attribute("name")?.Value);
-
-        foreach (string elementName in elementNames)
-        {
-            // ignore empty name element
-            if (string.IsNullOrEmpty(elementName)) continue;
-            // ignore prefix :  "___"
-            if (elementName.Contains(IgnoreElementNameCase)) continue;
-            
-            _elementInfos.Add(elementName);
-        }
-    }
-}
 }

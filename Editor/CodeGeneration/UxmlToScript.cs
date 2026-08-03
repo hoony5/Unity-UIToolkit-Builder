@@ -9,9 +9,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 using UIToolkitTransitions;
-#if UNITY_EDITOR
 using UnityEditor;
-#endif
 
 namespace UIToolkitTransitions.Editor
 {
@@ -156,19 +154,16 @@ public sealed class UxmlToScript : MonoBehaviour
 
     public void GetUxmlPath()
     {
-#if UNITY_EDITOR
         if(uxml)
             uxmlPath = AssetDatabase.GetAssetPath(uxml);
-#endif
     }
     private bool TryGetVisualElementNames()
     {
         _elementInfos.Clear();
 
-#if UNITY_EDITOR
         if (string.IsNullOrEmpty(uxmlPath) && uxml is not null)
             uxmlPath = AssetDatabase.GetAssetPath(uxml);
-#endif
+
         if (string.IsNullOrEmpty(uxmlPath) || !File.Exists(uxmlPath))
         {
             Debug.LogError("Uxml path is missing. Assign the uxml asset and press 'Get Uxml Path'.", this);
@@ -201,11 +196,10 @@ public sealed class UxmlToScript : MonoBehaviour
         string code = GenerateModelClass(monoName);
         writer.Write(code);
         writer.Close();
-#if UNITY_EDITOR
+
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         Object result = AssetDatabase.LoadAssetAtPath<Object>(filePath);
         EditorGUIUtility.PingObject(result);
-#endif
     }
     private string GenerateModelClass(string monoName)
     {
@@ -271,11 +265,9 @@ public class {monoName} : MonoBehaviour
         writer.Write(code);
         writer.Close();
 
-#if UNITY_EDITOR
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         Object result = AssetDatabase.LoadAssetAtPath<Object>(filePath);
         EditorGUIUtility.PingObject(result);
-#endif
     }
     private string GenerateCtrlClass(string monoName, string modelMonoName)
     {

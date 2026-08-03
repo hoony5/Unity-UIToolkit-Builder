@@ -1,160 +1,95 @@
-﻿using System;
-using UnityEditor;
+﻿using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace UIToolkitTransitions.Editor
 {
-[CustomEditor(typeof(UxmlToScript))]
-public class UxmlToScriptEditor : Editor
-{
-    private UxmlToScript _reader;
-
-    private SerializedProperty _uxmlAssetProperty;
-    private SerializedProperty _uxmlAssetPathProperty;
-    private SerializedProperty _panelSettingAssetProperty;
-    private SerializedProperty _sortOrderProperty;
-    
-    private SerializedProperty _modelScriptNameProperty;
-    private SerializedProperty _controllerScriptNameProperty;
-    private SerializedProperty _savePathProperty;
-    
-    private SerializedProperty _instanceParentProperty;
-    private SerializedProperty _animatorPrefabProperty;
-    
-    private GUIContent _uxmlAssetLabel = new GUIContent("Uxml Asset");
-    private GUIContent _uxmlAssetPathLabel = new GUIContent("Uxml Asset Path");
-    private GUIContent _panelSettingAssetLabel = new GUIContent("Panel Setting Asset");
-    private GUIContent _sortOrderLabel = new GUIContent("Sort Order");
-    
-    private GUIContent _modelScriptNameLabel = new GUIContent("Model Script Name");
-    private GUIContent _controllerScriptNameLabel = new GUIContent("Controller Script Name");
-    private GUIContent _savePathLabel = new GUIContent("To Save Path");
-    
-    private GUIContent _instanceParentLabel = new GUIContent("Parent of Instance Model's UI ");
-    private GUIContent _animatorPrefabLabel = new GUIContent("UI Animator Prefab");
-    
-    private GUILayoutOption _buttonHeight = GUILayout.Height(30);
-    
-    private bool _editUxmlConfig;
-    private bool _makeScriptConfig;
-    private bool _createInstanceConfig;
-    private bool _testMode;
-
-    private const int LargeFontSize = 20;
-    private const int FontSize = 16;
-    private void OnEnable()
+    [CustomEditor(typeof(UxmlToScript))]
+    public class UxmlToScriptEditor : UnityEditor.Editor
     {
-        _reader = (UxmlToScript)target;
-        
-        _uxmlAssetProperty = serializedObject.FindProperty("uxml");
-        _uxmlAssetPathProperty = serializedObject.FindProperty("uxmlPath");
-        _panelSettingAssetProperty = serializedObject.FindProperty("panelSettings");
-        _sortOrderProperty = serializedObject.FindProperty("sortOrder");
-        
-        _modelScriptNameProperty = serializedObject.FindProperty("modelScriptName");
-        _controllerScriptNameProperty = serializedObject.FindProperty("controllerScriptName");
-        _savePathProperty = serializedObject.FindProperty("savePath");
-        
-        _instanceParentProperty = serializedObject.FindProperty("instanceParent");
-        _animatorPrefabProperty = serializedObject.FindProperty("animatorPrefab");
-        
-    }
+        private const float ButtonHeight = 30;
+        private const float ButtonSpacing = 10;
 
-    public override void OnInspectorGUI()
-    {
-        serializedObject.Update();
-        EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space(10);
-        
-        DrawUXmlConfigArea();
-        EditorGUILayout.Space(10);
-        DrawMakingScriptConfig();
-        EditorGUILayout.Space(10);
-        DrawCreateInstanceConfig();
-        
-        EditorGUILayout.Space(10);
-        DrawButtons();
-        EditorGUILayout.Space(10);
-        EditorGUILayout.EndVertical();
-        serializedObject.ApplyModifiedProperties();
-    }
+        private UxmlToScript _reader;
 
-    private void DrawUXmlConfigArea()
-    {
-        GUIStyle uxmlConfigStyle = new  GUIStyle(GUI.skin.button){fixedHeight = 40, fontSize = FontSize, richText = true};
-        if(_editUxmlConfig)
-            uxmlConfigStyle = new GUIStyle(EditorStyles.foldoutHeader){stretchWidth = true,fixedHeight = 40, fontSize = LargeFontSize, richText = true, alignment = TextAnchor.MiddleCenter};
-        
-        _editUxmlConfig = EditorGUILayout.BeginFoldoutHeaderGroup(_editUxmlConfig,"<color=lime>Uxml Config</color>",uxmlConfigStyle);
-        if (_editUxmlConfig)
+        public override VisualElement CreateInspectorGUI()
         {
-            EditorGUILayout.PropertyField(_uxmlAssetProperty, _uxmlAssetLabel);
-            EditorGUILayout.PropertyField(_uxmlAssetPathProperty, _uxmlAssetPathLabel);
-            EditorGUILayout.PropertyField(_panelSettingAssetProperty, _panelSettingAssetLabel);
-            EditorGUILayout.PropertyField(_sortOrderProperty, _sortOrderLabel);
-        } 
-        EditorGUILayout.EndFoldoutHeaderGroup();
-    }
+            _reader = (UxmlToScript)target;
 
-    private void DrawMakingScriptConfig()
-    {
-        GUIStyle uxmlConfigStyle = new  GUIStyle(GUI.skin.button){fixedHeight = 40, fontSize = FontSize,richText = true};
-        if(_makeScriptConfig)
-            uxmlConfigStyle = new GUIStyle(EditorStyles.foldoutHeader){stretchWidth = true,fixedHeight = 40, fontSize = LargeFontSize, richText = true, alignment = TextAnchor.MiddleCenter};
-        
-        _makeScriptConfig = EditorGUILayout.BeginFoldoutHeaderGroup(_makeScriptConfig,"<color=lime>Making Script Config</color>",uxmlConfigStyle);
-        if (_makeScriptConfig)
-        {
-            EditorGUILayout.PropertyField(_modelScriptNameProperty, _modelScriptNameLabel);
-            EditorGUILayout.PropertyField(_controllerScriptNameProperty, _controllerScriptNameLabel);
-            EditorGUILayout.PropertyField(_savePathProperty, _savePathLabel);
-        } 
-        EditorGUILayout.EndFoldoutHeaderGroup();
-    }
-    private void DrawCreateInstanceConfig()
-    {
-        GUIStyle uxmlConfigStyle = new  GUIStyle(GUI.skin.button){fixedHeight = 40,fontSize = FontSize, richText = true};
-        if(_createInstanceConfig)
-            uxmlConfigStyle = new GUIStyle(EditorStyles.foldoutHeader){stretchWidth = true,fixedHeight = 40, fontSize = LargeFontSize, richText = true, alignment = TextAnchor.MiddleCenter};
-        
-        _createInstanceConfig = EditorGUILayout.BeginFoldoutHeaderGroup(_createInstanceConfig,"<color=lime>Create Instance Config</color>",uxmlConfigStyle);
-        if (_createInstanceConfig)
-        {
-            EditorGUILayout.PropertyField(_instanceParentProperty, _instanceParentLabel);
-            EditorGUILayout.PropertyField(_animatorPrefabProperty, _animatorPrefabLabel);
-        } 
-        EditorGUILayout.EndFoldoutHeaderGroup();
-    }
-    private void DrawButtons()
-    {
-        GUIStyle uxmlConfigStyle = new  GUIStyle(GUI.skin.button){fixedHeight = 40,fontSize = FontSize, richText = true};
-        if(_testMode)
-            uxmlConfigStyle = new GUIStyle(EditorStyles.foldoutHeader){stretchWidth = true,fixedHeight = 40, fontSize = LargeFontSize, richText = true, alignment = TextAnchor.MiddleCenter};
-        
-        _testMode = EditorGUILayout.BeginFoldoutHeaderGroup(_testMode,"<color=lime>Execute Buttons</color>",uxmlConfigStyle);
-        if (_testMode)
-        {
-            if (GUILayout.Button("Get Uxml Path", _buttonHeight))
-            {
-                _reader.GetUxmlPath();
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button("Create Model", _buttonHeight))
-            {
-                _reader.CreateModel();
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button("Create Model Controller", _buttonHeight))
-            {
-                _reader.CreateModelCtrl();
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button("Create Instance on the hierarchy", _buttonHeight))
-            {
-                _reader.InstantiateModelWithController();
-            }
+            var root = new VisualElement();
+            root.Add(CreateUxmlConfigSection());
+            root.Add(CreateMakingScriptSection());
+            root.Add(CreateInstanceSection());
+            root.Add(CreateExecuteSection());
+            return root;
         }
-        EditorGUILayout.EndFoldoutHeaderGroup();
+
+        private Foldout CreateUxmlConfigSection()
+        {
+            var foldout = CreateSectionFoldout("Uxml Config");
+            foldout.Add(new PropertyField(serializedObject.FindProperty("uxml"), "Uxml Asset"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("uxmlPath"), "Uxml Asset Path"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("panelSettings"), "Panel Setting Asset"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("sortOrder"), "Sort Order"));
+            return foldout;
+        }
+
+        private Foldout CreateMakingScriptSection()
+        {
+            var foldout = CreateSectionFoldout("Making Script Config");
+            foldout.Add(new PropertyField(serializedObject.FindProperty("modelScriptName"), "Model Script Name"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("controllerScriptName"), "Controller Script Name"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("savePath"), "To Save Path"));
+            return foldout;
+        }
+
+        private Foldout CreateInstanceSection()
+        {
+            var foldout = CreateSectionFoldout("Create Instance Config");
+            foldout.Add(new PropertyField(serializedObject.FindProperty("instanceParent"), "Parent of Instance Model's UI"));
+            foldout.Add(new PropertyField(serializedObject.FindProperty("animatorPrefab"), "UI Animator Prefab"));
+            return foldout;
+        }
+
+        private Foldout CreateExecuteSection()
+        {
+            var foldout = CreateSectionFoldout("Execute Buttons");
+            foldout.Add(CreateActionButton("Get Uxml Path", OnGetUxmlPathClicked));
+            foldout.Add(CreateActionButton("Create Model", _reader.CreateModel));
+            foldout.Add(CreateActionButton("Create Model Controller", _reader.CreateModelCtrl));
+            foldout.Add(CreateActionButton("Create Instance on the hierarchy", _reader.InstantiateModelWithController));
+            return foldout;
+        }
+
+        private void OnGetUxmlPathClicked()
+        {
+            SerializedProperty uxmlProperty = serializedObject.FindProperty("uxml");
+            if (uxmlProperty.objectReferenceValue is null) return;
+
+            SerializedProperty uxmlPathProperty = serializedObject.FindProperty("uxmlPath");
+            uxmlPathProperty.stringValue = AssetDatabase.GetAssetPath(uxmlProperty.objectReferenceValue);
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        private static Foldout CreateSectionFoldout(string title)
+        {
+            var foldout = new Foldout
+            {
+                text = title,
+                value = false,
+                style = { marginTop = ButtonSpacing }
+            };
+            return foldout;
+        }
+
+        private static Button CreateActionButton(string label, System.Action onClick)
+        {
+            return new Button(onClick)
+            {
+                text = label,
+                style = { height = ButtonHeight, marginTop = ButtonSpacing }
+            };
+        }
     }
-}
 }

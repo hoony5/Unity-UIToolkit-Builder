@@ -1,32 +1,38 @@
-﻿using System;
-using UnityEditor;
-using UnityEngine;
+﻿using UnityEditor;
+using UnityEditor.UIElements;
+using UnityEngine.UIElements;
 
 namespace UIToolkitTransitions.Editor
 {
-[CustomEditor(typeof(USSReader))]
-public class USSReaderEditor : Editor
-{
-    private USSReader _reader;
-    private GUILayoutOption _buttonHeight = GUILayout.Height(30);
-    private void OnEnable()
+    [CustomEditor(typeof(USSReader))]
+    public class USSReaderEditor : UnityEditor.Editor
     {
-        _reader = (USSReader)target;
-    }
-
-    public override void OnInspectorGUI()
-    {
-        base.OnInspectorGUI();
-        
-        EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space(15);
-        if (GUILayout.Button("read", _buttonHeight) && _reader.uss)
+        public override VisualElement CreateInspectorGUI()
         {
-            _reader.path = AssetDatabase.GetAssetPath(_reader.uss);
-            _reader.Read();
+            USSReader reader = (USSReader)target;
+
+            var root = new VisualElement();
+            root.Add(new PropertyField(serializedObject.FindProperty("uss")));
+            root.Add(new PropertyField(serializedObject.FindProperty("path")));
+            root.Add(new PropertyField(serializedObject.FindProperty("classNames")));
+
+            var readButton = new Button(OnReadClicked)
+            {
+                text = "Read",
+                style = { height = 30, marginTop = 15, marginBottom = 15 }
+            };
+            root.Add(readButton);
+
+            return root;
+
+            void OnReadClicked()
+            {
+                if (reader.uss is null) return;
+
+                reader.path = AssetDatabase.GetAssetPath(reader.uss);
+                reader.Read();
+                EditorUtility.SetDirty(reader);
+            }
         }
-        EditorGUILayout.Space(15);
-        EditorGUILayout.EndVertical();
     }
-}
 }

@@ -1,42 +1,28 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 
 namespace UIToolkitTransitions.Editor
 {
-public class USSReader : MonoBehaviour
-{
-    private const int Capacity = 64;
-    public StyleSheet uss;
-    public string path;
-
-    public List<string> classNames = new List<string>(Capacity);
-    // Test
-    public void Read()
+    /// <summary>
+    /// Editor utility that lists the class selectors defined in a USS asset.
+    /// </summary>
+    public class USSReader : MonoBehaviour
     {
-        if (uss is null) return;
-        
-        using FileStream fs = new FileStream(path, FileMode.OpenOrCreate);
-        using StreamReader reader = new StreamReader(fs);
-        string css = reader.ReadToEnd();
-        
-        // .selector , must have block nested
-        string pattern = @"(?<=^|\n)(?<className>\.[a-zA-Z0-9_\-]+)";
-        classNames.Clear();
-        MatchCollection matches = Regex.Matches(css, pattern, RegexOptions.Multiline);
+        private const int Capacity = 64;
 
-        if (matches.Count == 0) return;
-        foreach (Match match in matches)
+        public StyleSheet uss;
+        public string path;
+        public List<string> classNames = new List<string>(Capacity);
+
+        public void Read()
         {
-            string selector = match.Groups["className"].Value.TrimStart('.');
-            if(!classNames.Contains(selector))
-                classNames.Add(selector);
+            if (uss is null) return;
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+            classNames.Clear();
+            classNames.AddRange(UssClassParser.ParseClassNames(File.ReadAllText(path)));
         }
-        reader.Close();
-        fs.Close();
     }
-}
 }

@@ -1,79 +1,76 @@
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
-using UIToolkitTransitions;
+using UnityEngine.UIElements;
 
 namespace UIToolkitTransitions.Editor
 {
-[CustomEditor(typeof(UIAnimator))]
-public class UIAnimatorEditor : Editor
-{
-    private static GUIContent _isTestModeLabel = new GUIContent("Test Mode"); 
-    private static GUIContent _controllerLabel = new GUIContent("Animator Controller"); 
-    private static GUIContent _visualElementNameLabel = new GUIContent("visualElementNames");
-    
-    private UIAnimator _data;
-
-    private SerializedProperty _isTestModeProperty;
-    private SerializedProperty _dataControllerProperty;
-    private SerializedProperty _visualElementNamesProperty;
-
-    private GUILayoutOption _buttonHeight = GUILayout.Height(30);
-
-    private void OnEnable()
+    [CustomEditor(typeof(UIAnimator))]
+    public class UIAnimatorEditor : UnityEditor.Editor
     {
-        _data = target as UIAnimator;
-        _isTestModeProperty = serializedObject.FindProperty("isTestMode");
-        _dataControllerProperty = serializedObject.FindProperty("dataController");
-        _visualElementNamesProperty = serializedObject.FindProperty("visualElementNames");
-    }
-    public override void OnInspectorGUI()
-    {
-        serializedObject.Update();
-        EditorGUILayout.Space(10);
-        EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space(10);
-        EditorGUILayout.PropertyField(_dataControllerProperty, _controllerLabel);
-        EditorGUILayout.Space(10);
-        EditorGUILayout.PropertyField(_isTestModeProperty, _isTestModeLabel);
-        EditorGUILayout.Space(10);
+        private const float TestButtonHeight = 30;
+        private const float TestButtonSpacing = 10;
 
-        if (_isTestModeProperty.boolValue)
+        public override VisualElement CreateInspectorGUI()
         {
-            EditorGUILayout.PropertyField(_visualElementNamesProperty, _visualElementNameLabel);
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button($"Play Test", _buttonHeight))
+            UIAnimator animator = (UIAnimator)target;
+
+            var root = new VisualElement();
+            root.style.paddingTop = TestButtonSpacing;
+
+            root.Add(new PropertyField(serializedObject.FindProperty("dataController"), "Animator Controller"));
+            var testModeField = new PropertyField(serializedObject.FindProperty("isTestMode"), "Test Mode");
+            root.Add(testModeField);
+
+            var testArea = new VisualElement();
+            testArea.style.marginTop = TestButtonSpacing;
+            testArea.Add(new PropertyField(serializedObject.FindProperty("visualElementNames")));
+            testArea.Add(CreateTestButton("Play Test", () =>
             {
-                foreach (string visualElementName in _data.visualElementNames)
-                {
-                    _data.Play(visualElementName);
-                }
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button($"Reverse Play Test", _buttonHeight))
+                foreach (string visualElementName in animator.visualElementNames)
+                    animator.Play(visualElementName);
+            }));
+            testArea.Add(CreateTestButton("Reverse Play Test", () =>
             {
-                foreach (string visualElementName in _data.visualElementNames)
-                {
-                    _data.ReversePlay(visualElementName);
-                }
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button("ResetStyleClassesList", _buttonHeight))
+                foreach (string visualElementName in animator.visualElementNames)
+                    animator.ReversePlay(visualElementName);
+            }));
+            testArea.Add(CreateTestButton("ResetStyleClassesList", animator.OnUpdateStyle));
+            testArea.Add(CreateTestButton("Debug ClassList", () =>
             {
-                _data.OnUpdateStyle();
-            }
-            EditorGUILayout.Space(10);
-            if (GUILayout.Button("Debug ClassList", _buttonHeight))
-            {
-                foreach (string visualElementName in _data.visualElementNames)
-                {
-                    _data.GetClassList(visualElementName);
-                }
-            }
+                foreach (string visualElementName in animator.visualElementNames)
+                    animator.GetClassList(visualElementName);
+            }));
+            root.Add(testArea);
+
+            root.Add(new HelpBox("Test buttons only take effect in Play Mode.", HelpBoxMessageType.Info));
+
+            testModeField.RegisterValueChangeCallback(evt =>
+                testArea.style.display = evt.changedProperty.boolValue ? DisplayStyle.Flex : DisplayStyle.None);
+            testArea.style.display = serializedObject.FindProperty("isTestMode").boolValue
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
+
+            return root;
         }
 
-        EditorGUILayout.EndVertical();
+        private static Button CreateTestButton(string label, System.Action onClick)
+        {
+            return new Button(OnClicked)
+            {
+                text = label,
+                style = { height = TestButtonHeight, marginTop = TestButtonSpacing }
+            };
 
-        serializedObject.ApplyModifiedProperties();
+            void OnClicked()
+            {
+                if (!EditorApplication.isPlaying)
+                {
+                    Debug.LogWarning("UIAnimator test buttons only work in Play Mode.");
+                    return;
+                }
+                onClick.Invoke();
+            }
+        }
     }
-}
 }
