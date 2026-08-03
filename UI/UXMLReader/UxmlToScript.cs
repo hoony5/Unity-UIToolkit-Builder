@@ -28,8 +28,8 @@ public sealed class UxmlToScript : MonoBehaviour
 
     private StringBuilder _classFrameBuilder = new StringBuilder(1000);
     private StringBuilder _classFieldBuilder = new StringBuilder(1000);
-    
-    private string _ignorePrefixName = "___";
+
+    private const string IgnorePrefixName = "___";
 
     [SerializeField] private string modelScriptName;
     [SerializeField] private string controllerScriptName;
@@ -43,10 +43,10 @@ public sealed class UxmlToScript : MonoBehaviour
     {
         if (uxml is null)
         {
-            Debug.Log($"There is no uxml.");
+            Debug.LogError($"There is no uxml.", this);
             return;
         }
-        GetVisualElementNames();
+        if (!TryGetVisualElementNames()) return;
 
         CreateModelMonoScript(modelScriptName);
     }
@@ -54,10 +54,10 @@ public sealed class UxmlToScript : MonoBehaviour
     {
         if (uxml is null)
         {
-            Debug.Log($"There is no uxml.");
+            Debug.LogError($"There is no uxml.", this);
             return;
         }
-        GetVisualElementNames();
+        if (!TryGetVisualElementNames()) return;
 
         CreateCtrlMonoScript(controllerScriptName, modelScriptName);
     }
@@ -65,17 +65,17 @@ public sealed class UxmlToScript : MonoBehaviour
     // can use runtime when initializing.
     public void InstantiateModelWithController()
     {
-        Type modelType = Type.GetType(modelScriptName);
-        Type modelControllerType = Type.GetType(controllerScriptName);
+        Type modelType = FindType(modelScriptName);
+        Type modelControllerType = FindType(controllerScriptName);
 
         if (modelType is null)
         {
-            Debug.Log($"{modelScriptName} is not create yet.");
+            Debug.LogError($"{modelScriptName} is not created yet.", this);
             return;
         }
-        if (modelControllerType is null) 
+        if (modelControllerType is null)
         {
-            Debug.Log($"{controllerScriptName} is not create yet.");
+            Debug.LogError($"{controllerScriptName} is not created yet.", this);
             return;
         }
 
@@ -83,13 +83,13 @@ public sealed class UxmlToScript : MonoBehaviour
         GameObject instance = new GameObject($"{modelType} UI Instance");
 
         // Add Components
-        Component docuemnt = instance.AddComponent(typeof(UIDocument));
+        Component document = instance.AddComponent(typeof(UIDocument));
         Component model = instance.AddComponent(modelType);
         Component controller = instance.AddComponent(modelControllerType);
-        
+
         // inject UI Document ref
         FieldInfo modelUIDocumentField = instance.GetComponent(modelType).GetType().GetField("uiDocument");
-        modelUIDocumentField.SetValue(model, docuemnt );
+        modelUIDocumentField.SetValue(model, document );
 
         // inject model type ref
         Span<char> modelName = new Span<char>(modelType.ToString().ToCharArray());
@@ -104,11 +104,11 @@ public sealed class UxmlToScript : MonoBehaviour
             Debug.Log($"if assign uxml , automatically inject to UIDocument of instance's Component.");
         }
 
-        UIDocument docRef = (UIDocument)docuemnt;
+        UIDocument docRef = (UIDocument)document;
         docRef.visualTreeAsset = uxml;
         if (panelSettings is null)
         {
-            Debug.Log($"if assign PanelSettings , automatically inject to UIDocument of instance's Component.");
+            Debug.LogWarning($"if assign PanelSettings , automatically inject to UIDocument of instance's Component.", this);
         }
         docRef.panelSettings = panelSettings;
         docRef.sortingOrder = sortOrder;
@@ -124,9 +124,31 @@ public sealed class UxmlToScript : MonoBehaviour
         }
         UIAnimator instancedUIAnimator = Instantiate(animatorPrefab, null, true);
         instancedUIAnimator.name = "UI Animator";
-        DestroyImmediate(instancedUIAnimator.GetComponent(typeof(UIDocument)));
+
+        Component duplicatedDocument = instancedUIAnimator.GetComponent(typeof(UIDocument));
+        if (duplicatedDocument is not null)
+        {
+            // DestroyImmediate throws in play mode; Destroy is deferred, so use it per context.
+            if (Application.isPlaying)
+                Destroy(duplicatedDocument);
+            else
+                DestroyImmediate(duplicatedDocument);
+        }
+
         instancedUIAnimator.transform.SetParent(instance.transform);
         instancedUIAnimator.dataController.UIDocument = docRef;
+    }
+
+    private static Type FindType(string typeName)
+    {
+        if (string.IsNullOrEmpty(typeName)) return null;
+
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type type = assembly.GetType(typeName);
+            if (type is not null) return type;
+        }
+        return null;
     }
 
     public void GetUxmlPath()
@@ -136,9 +158,20 @@ public sealed class UxmlToScript : MonoBehaviour
             uxmlPath = AssetDatabase.GetAssetPath(uxml);
 #endif
     }
-    private void GetVisualElementNames()
+    private bool TryGetVisualElementNames()
     {
         _elementInfos.Clear();
+
+#if UNITY_EDITOR
+        if (string.IsNullOrEmpty(uxmlPath) && uxml is not null)
+            uxmlPath = AssetDatabase.GetAssetPath(uxml);
+#endif
+        if (string.IsNullOrEmpty(uxmlPath) || !File.Exists(uxmlPath))
+        {
+            Debug.LogError("Uxml path is missing. Assign the uxml asset and press 'Get Uxml Path'.", this);
+            return false;
+        }
+
         XDocument document = XDocument.Load(uxmlPath);
         IEnumerable<(string type, string name)> elements = document.Elements().Descendants().Select(i => (i.Name.LocalName, i.Attribute("name")?.Value));
 
@@ -147,10 +180,11 @@ public sealed class UxmlToScript : MonoBehaviour
             // ignore empty name element
             if (string.IsNullOrEmpty(element.name)) continue;
             // ignore case
-            if (element.name.Contains(_ignorePrefixName)) continue;
-            
+            if (element.name.Contains(IgnorePrefixName)) continue;
+
             _elementInfos.Add(element);
         }
+        return true;
     }
     private void CreateModelMonoScript(string monoName)
     {
@@ -159,7 +193,7 @@ public sealed class UxmlToScript : MonoBehaviour
         if (!Directory.Exists(savePath))
             Directory.CreateDirectory(savePath);
 
-        using FileStream fs = new FileStream(filePath, FileMode.Truncate,FileAccess.ReadWrite, FileShare.ReadWrite);
+        using FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         using StreamWriter writer = new StreamWriter(fs);
         string code = GenerateModelClass(monoName);
         writer.Write(code);
@@ -228,7 +262,7 @@ public class {monoName} : MonoBehaviour
         if (!Directory.Exists(savePath))
             Directory.CreateDirectory(savePath);
         
-        using FileStream fs = new FileStream(filePath, FileMode.Truncate,FileAccess.ReadWrite, FileShare.ReadWrite);
+        using FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
         using StreamWriter writer = new StreamWriter(fs);
         string code = GenerateCtrlClass(monoName, modelMonoName);
         writer.Write(code);

@@ -1,9 +1,10 @@
 using UnityEngine;
 
 [RequireComponent(typeof(TransitionDataController))]
-[System.Serializable]
 public class UIAnimator : MonoBehaviour
 {
+   private const string DefaultTestElementName = "root";
+
    [SerializeField] public TransitionDataController dataController;
 
    [SerializeField] private bool isTestMode;
@@ -15,11 +16,11 @@ public class UIAnimator : MonoBehaviour
 #if  UNITY_EDITOR
    public void PlayTest()
    {
-      OnToggle("root",false);
+      OnToggle(DefaultTestElementName,false);
    }
    public void ReversePlayTest()
    {
-      OnToggle("root",true);
+      OnToggle(DefaultTestElementName,true);
    }
 #endif
    public void Play(string visualElementName)

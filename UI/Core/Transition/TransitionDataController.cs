@@ -25,15 +25,22 @@ public class TransitionDataController : MonoBehaviour
     
     private IEnumerator Start()
     {
+        if (UIDocument is null)
+        {
+            Debug.LogError($"{nameof(TransitionDataController)} requires a {nameof(UIDocument)} reference.", this);
+            yield break;
+        }
+
         while (UIDocument.rootVisualElement is null)
             yield return null;
-        
+
         Init();
     }
 
     private void OnDestroy()
     {
         transitionContainer.Clear();
+        visualElementContainer.Clear();
     }
 
     public void Init()
@@ -65,7 +72,13 @@ public class TransitionDataController : MonoBehaviour
 
     public void GetVisualElementClassList(string visualElementName)
     {
-        var list = visualElementContainer[visualElementName].GetClasses().ToArray();
+        if (!visualElementContainer.TryGetValue(visualElementName, out VisualElement target))
+        {
+            Debug.LogWarning($"{visualElementName} is not registered.", this);
+            return;
+        }
+
+        var list = target.GetClasses().ToArray();
         foreach (string item in list)
         {
             Debug.Log($"{visualElementName} : {item}");
@@ -114,7 +127,7 @@ public class TransitionDataController : MonoBehaviour
         target.RegisterCallback<TransitionStartEvent>(OnTransitionStart);
         target.RegisterCallback<TransitionEndEvent>(OnTransitionEnd);
     }
-    public void StarTest()
+    public void StartTest()
     {
         Debug.Log("Start");
     }
@@ -126,7 +139,7 @@ public class TransitionDataController : MonoBehaviour
     {
         onPlayStart?.Invoke(evt);
         if (debugOn)
-            StarTest();
+            StartTest();
     }
     private void OnTransitionEnd(TransitionEndEvent evt)
     {
@@ -165,42 +178,38 @@ public class TransitionDataController : MonoBehaviour
         for(var i = 0 ; i < data.styleClasses?.Length; i ++)
         {
             TransitionClass styleClass = data.styleClasses[i];
-            
-            if(!target.ClassListContains(styleClass.StyleName))
-                target.AddToClassList(styleClass.StyleName);    
+
+            if(!styleClass.IsTriggerStyleOnStart) continue;
+
+            if(target.ClassListContains(styleClass.StyleName))
+                target.RemoveFromClassList(styleClass.StyleName);
         }
     }
     public void ToggleAnimatedClassList(string elementName)
     {
-        if (!transitionContainer.ContainsKey(elementName)) return;
+        if (!transitionContainer.TryGetValue(elementName, out List<TransitionData> styles)) return;
+        if (!visualElementContainer.TryGetValue(elementName, out VisualElement target)) return;
 
-        List<TransitionData> styles = transitionContainer[elementName];
-        VisualElement target = visualElementContainer[elementName];
-        
         foreach (TransitionData style in styles)
         {
             for(int i = 0 ; i < style.styleClasses?.Length; i ++)
             {
                 TransitionClass styleClass = style.styleClasses[i];
                 if (!styleClass.IsTriggerStyle) continue;
-            
+
                 if(debugOn)
-                    Debug.Log($"Add - {styleClass.StyleName}");
+                    Debug.Log($"Toggle - {styleClass.StyleName}");
                 target.ToggleInClassList(styleClass.StyleName);
-                
+
                 if (!string.IsNullOrEmpty(styleClass.SwappedClass))
                     target.ToggleInClassList(styleClass.SwappedClass);
-                
-                target.ToggleInClassList(styleClass.StyleName);
-            }   
+            }
         }
     }
     public void AddAnimatedClassList(string elementName)
     {
-        if (!transitionContainer.ContainsKey(elementName)) return;
-
-        List<TransitionData> styles = transitionContainer[elementName];
-        VisualElement target = visualElementContainer[elementName];
+        if (!transitionContainer.TryGetValue(elementName, out List<TransitionData> styles)) return;
+        if (!visualElementContainer.TryGetValue(elementName, out VisualElement target)) return;
         
         foreach (TransitionData style in styles)
         {
@@ -221,10 +230,8 @@ public class TransitionDataController : MonoBehaviour
     }
     public void RemoveAnimatedFromClassList(string elementName)
     {
-        if (!transitionContainer.ContainsKey(elementName)) return;
-
-        List<TransitionData> styles = transitionContainer[elementName];
-        VisualElement target = visualElementContainer[elementName];
+        if (!transitionContainer.TryGetValue(elementName, out List<TransitionData> styles)) return;
+        if (!visualElementContainer.TryGetValue(elementName, out VisualElement target)) return;
 
         foreach (TransitionData style in styles)
         {

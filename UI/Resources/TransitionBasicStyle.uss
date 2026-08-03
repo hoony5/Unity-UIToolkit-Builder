@@ -20,16 +20,12 @@
     -unity-background-image-tint-color: rgba(255, 255, 255, 0);
 }
 
-.colored:checked :hover {
+.colored:checked:hover {
     background-color: rgb(100, 100, 100);
 }
 
-.colored:checked :active {
+.colored:checked:active {
     background-color: rgb(100, 100, 100);
-}
-
-.colored:checked :inactive {
-    background-color: rgb(255, 255, 255);
 }
 
 .panel--go_right {
@@ -138,17 +134,13 @@
 }
 
 .panel--rotate_90 {
-    rotate: 45deg;
+    rotate: 90deg;
 }
 
 .flex--test {
     transition-duration: 0.5s;
     transition-timing-function: ease-in-out-bounce;
     flex-grow: 1;
-}
-
-.handCursor {
-    cursor: resource('HandLinkCursor');
 }
 
 .fadeOut {
@@ -159,10 +151,11 @@
     opacity: 0;
 }
 
+/* 'display' cannot be transitioned; use visibility + opacity instead. */
 .hidden {
     transition-duration: 0.5s;
-    opacity: 1;
-    display: none;
+    opacity: 0;
+    visibility: hidden;
     scale: 0 0;
     transition-property: all;
 }
@@ -170,7 +163,9 @@
 .show {
     transition-duration: 0.5s;
     opacity: 1;
+    visibility: visible;
     display: flex;
+    scale: 1 1;
     transition-property: all;
     transition-delay: 0s;
 }
