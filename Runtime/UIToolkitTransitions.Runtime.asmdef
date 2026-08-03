@@ -1,0 +1,14 @@
+{
+    "name": "UIToolkitTransitions.Runtime",
+    "rootNamespace": "UIToolkitTransitions",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
