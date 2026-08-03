@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -25,6 +27,9 @@ public class TransitionDataController : MonoBehaviour
     
     private Dictionary<string, List<TransitionData>> transitionContainer =
         new Dictionary<string, List<TransitionData>>(16);
+
+    private Dictionary<string, TaskCompletionSource<bool>> pendingTransitions =
+        new Dictionary<string, TaskCompletionSource<bool>>(16);
     
     private IEnumerator Start()
     {
@@ -42,6 +47,10 @@ public class TransitionDataController : MonoBehaviour
 
     private void OnDestroy()
     {
+        foreach (TaskCompletionSource<bool> completion in pendingTransitions.Values)
+            completion.TrySetCanceled();
+
+        pendingTransitions.Clear();
         transitionContainer.Clear();
         visualElementContainer.Clear();
     }
@@ -276,6 +285,63 @@ public class TransitionDataController : MonoBehaviour
                 target.RemoveFromClassList(styleClass.StyleName);
             }
         }
+    }
+
+    /// <summary>
+    /// Plays the transition of the element and completes when the element
+    /// fires TransitionEndEvent. Returns a completed task when the element
+    /// is not registered. Pass a CancellationToken as a safety net: if the
+    /// USS of the element runs no transition, TransitionEndEvent never fires
+    /// and the task would otherwise stay pending.
+    /// </summary>
+    public Task PlayAsync(string elementName, CancellationToken cancellationToken = default)
+    {
+        AddAnimatedClassList(elementName);
+        return RegisterTransitionCompletion(elementName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reverse plays the transition of the element and completes when the
+    /// element fires TransitionEndEvent. See <see cref="PlayAsync"/>.
+    /// </summary>
+    public Task ReversePlayAsync(string elementName, CancellationToken cancellationToken = default)
+    {
+        RemoveAnimatedFromClassList(elementName);
+        return RegisterTransitionCompletion(elementName, cancellationToken);
+    }
+
+    private Task RegisterTransitionCompletion(string elementName, CancellationToken cancellationToken)
+    {
+        if (!visualElementContainer.TryGetValue(elementName, out VisualElement target))
+            return Task.CompletedTask;
+
+        if (pendingTransitions.TryGetValue(elementName, out TaskCompletionSource<bool> previous))
+            previous.TrySetCanceled();
+
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        pendingTransitions[elementName] = completion;
+
+        CancellationTokenRegistration cancellationRegistration = default;
+        if (cancellationToken.CanBeCanceled)
+        {
+            cancellationRegistration = cancellationToken.Register(() =>
+            {
+                pendingTransitions.Remove(elementName);
+                completion.TrySetCanceled();
+            });
+        }
+
+        EventCallback<TransitionEndEvent> onTransitionEnded = null;
+        onTransitionEnded = evt =>
+        {
+            target.UnregisterCallback(onTransitionEnded);
+            cancellationRegistration.Dispose();
+            pendingTransitions.Remove(elementName);
+            completion.TrySetResult(true);
+        };
+        target.RegisterCallback(onTransitionEnded);
+
+        return completion.Task;
     }
 }
 }

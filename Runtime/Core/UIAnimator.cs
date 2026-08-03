@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace UIToolkitTransitions
@@ -37,6 +39,16 @@ namespace UIToolkitTransitions
         public void ReversePlay(string visualElementName)
         {
             OnToggle(visualElementName, true);
+        }
+
+        public Task PlayAsync(string visualElementName, CancellationToken cancellationToken = default)
+        {
+            return dataController.PlayAsync(visualElementName, cancellationToken);
+        }
+
+        public Task ReversePlayAsync(string visualElementName, CancellationToken cancellationToken = default)
+        {
+            return dataController.ReversePlayAsync(visualElementName, cancellationToken);
         }
 
         public void GetClassList(string visualElementName)
