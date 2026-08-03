@@ -105,6 +105,36 @@ because an element whose USS runs no transition never fires
   the pair with a wired `UIDocument` into the hierarchy.
 - **USSReader** — lists every class selector defined in a USS asset.
 
+## Source generator (compile-time bindings)
+
+As a modern alternative to `UxmlToScript`, the package ships a Roslyn
+source generator. Declare a partial class and `[UiElement]` fields — the
+queries and callback wiring are generated at compile time, fully type-checked:
+
+```csharp
+using UIToolkitTransitions;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+[GenerateUiBindings]
+public partial class InventoryView : MonoBehaviour
+{
+    [UiElement("btn-close")] private Button closeButton;
+    [UiElement] private Slider volumeSlider;   // element name = field name
+
+    partial void OnCloseButtonClicked() => Destroy(gameObject);
+    partial void OnVolumeSliderValueChanged(ChangeEvent<float> evt) { }
+}
+```
+
+Generated: `BindElements(root)` (cached `Q<T>` queries), `InitSuccess`,
+`RegisterCallbacks()` / `UnregisterCallbacks()` (`clicked` for Button-derived
+fields, value-change callbacks for every `INotifyValueChanged<T>` field) and
+the `On<Field>Clicked` / `On<Field>ValueChanged` partial hooks. See the
+manual (`Documentation~/index.md`) for the full member table, and
+`Samples~/BasicTransition/ScriptGenerator/GeneratedModelExample.cs` for a
+runnable example.
+
 ## Conventions & notes
 
 - Elements whose name contains `___` are ignored by the editor tooling
@@ -118,11 +148,15 @@ because an element whose USS runs no transition never fires
 ## Package layout
 
 ```
-Runtime/    UIAnimator, TransitionDataController, TransitionData,
-            TransitionClass, TransitionDataContainer   (asmdef: Runtime)
-Editor/     inspectors, USS/UXML parsers, code generator (asmdef: Editor)
-Tests/      EditMode tests for parsers and data defaults
-Samples~/   Basic Transition sample
+Runtime/        UIAnimator, TransitionDataController, TransitionData,
+                TransitionClass, TransitionDataContainer, binding attributes
+                (asmdef: Runtime)
+Editor/         inspectors, USS/UXML parsers, editor-time code generator
+                (asmdef: Editor)
+Plugins/        prebuilt Roslyn source generator DLL (RoslynAnalyzer label)
+Tests/          EditMode tests for parsers and data defaults
+Samples~/       Basic Transition sample
+SourceGenerator~/  source of the Roslyn generator + rebuild guide
 Documentation~/
 ```
 

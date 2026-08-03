@@ -81,7 +81,63 @@ elements you never want to animate, e.g. `___background`.
 - **TransitionData inspector**: pick target element names from a popup filled
   by scanning the assigned UXML, and animation classes from a dropdown fed by
   parsing the assigned USS.
-- **UxmlToScript** (Script Generator): generate a Model MonoBehaviour
-  (cached `Q<T>` queries) and a Controller MonoBehaviour (event
+- **UxmlToScript** (editor-time Script Generator): generate a Model
+  MonoBehaviour (cached `Q<T>` queries) and a Controller MonoBehaviour (event
   registration stubs) from a UXML asset, and instance them into the scene.
 - **USSReader**: lists the class selectors of a USS asset.
+
+## Source generator (compile-time bindings)
+
+The package ships a Roslyn source generator
+(`Plugins/UIToolkitTransitions.SourceGenerators.dll`, labelled
+`RoslynAnalyzer`) as the modern alternative to the editor-time
+`UxmlToScript` generator. Declare a partial class and its element fields;
+the bindings are generated at compile time with full type checking:
+
+```csharp
+using UIToolkitTransitions;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+[GenerateUiBindings]
+public partial class InventoryView : MonoBehaviour
+{
+    public UIDocument uiDocument;
+
+    [UiElement("btn-close")] private Button closeButton;  // explicit UXML name
+    [UiElement] private Toggle muteToggle;                // name = field name
+    [UiElement] private Slider volumeSlider;
+
+    private void Start()
+    {
+        if (uiDocument.rootVisualElement is not null)
+        {
+            BindElements(uiDocument.rootVisualElement);   // generated
+            RegisterCallbacks();                          // generated
+        }
+    }
+
+    partial void OnCloseButtonClicked() => Destroy(gameObject);
+    partial void OnMuteToggleValueChanged(ChangeEvent<bool> evt) { }
+    partial void OnVolumeSliderValueChanged(ChangeEvent<float> evt) { }
+}
+```
+
+Generated members:
+
+| Member | Purpose |
+| --- | --- |
+| `BindElements(VisualElement root)` | cached `root.Q<T>(name)` per `[UiElement]` field |
+| `InitSuccess` | true after `BindElements` finished |
+| `OnElementsBound()` | partial hook called at the end of `BindElements` |
+| `RegisterCallbacks()` / `UnregisterCallbacks()` | `clicked` for Button-derived fields, `RegisterValueChangedCallback` for every `INotifyValueChanged<T>` field |
+| `On<Field>Clicked()` / `On<Field>ValueChanged(ChangeEvent<T> evt)` | partial hooks you implement |
+
+The payload type `T` of the value-change hooks is inferred from the field's
+`INotifyValueChanged<T>` implementation, so new control types work without
+generator changes. Diagnostics: `UTTSG001` (class is not partial),
+`UTTSG002` (field type is not a VisualElement).
+
+The generator source lives in `SourceGenerator~/` (rebuild instructions in
+its README). The editor-time `UxmlToScript` workflow stays available when
+you prefer generating editable scripts from a UXML asset.
